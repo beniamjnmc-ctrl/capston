@@ -16,7 +16,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>DentalArte — Clínica Odontológica</title>
+        <title>OdonTool — Clínica Odontológica</title>
         <meta name="description" content="Clínica odontológica de excelencia. Tu sonrisa, nuestra pasión." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
@@ -27,7 +27,7 @@ export default function Home() {
         <div className={styles.navInner}>
           <Link href="/" className={styles.logo}>
             <span className={styles.logoIcon}>✦</span>
-            <span className={styles.logoText}>DentalArte</span>
+            <span className={styles.logoText}>OdonTool</span>
           </Link>
 
           <div className={`${styles.navLinks} ${menuOpen ? styles.navOpen : ''}`}>
@@ -152,7 +152,7 @@ export default function Home() {
               <span className={styles.sectionLabel}>Sobre Nosotros</span>
               <h2 className={styles.sectionTitle}>Más que una clínica,<br /><em>somos tu familia</em></h2>
               <p className={styles.aboutText}>
-                En DentalArte creemos que una sonrisa saludable es el inicio de una vida plena. Por eso, cada tratamiento lo realizamos con la máxima precisión, tecnología de última generación y una atención cálida y personalizada.
+                En OdonTool creemos que una sonrisa saludable es el inicio de una vida plena. Por eso, cada tratamiento lo realizamos con la máxima precisión, tecnología de última generación y una atención cálida y personalizada.
               </p>
               <p className={styles.aboutText}>
                 Nuestro equipo de especialistas está comprometido con tu bienestar dental desde el primer día, acompañándote en cada etapa de tu tratamiento.
@@ -218,7 +218,7 @@ export default function Home() {
             <div className={styles.footerBrand}>
               <div className={styles.logo}>
                 <span className={styles.logoIcon}>✦</span>
-                <span className={styles.logoText}>DentalArte</span>
+                <span className={styles.logoText}>OdonTool</span>
               </div>
               <p>Tu salud dental es nuestra prioridad. Cuidamos tu sonrisa con pasión y excelencia.</p>
             </div>
@@ -236,13 +236,13 @@ export default function Home() {
               <ul>
                 <li>📍 Av. Providencia 1234, Santiago</li>
                 <li>📞 +56 2 2345 6789</li>
-                <li>✉️ hola@dentalarte.cl</li>
+                <li>✉️ hola@odontool.cl</li>
                 <li>🕐 Lun–Vie 9:00–19:00</li>
               </ul>
             </div>
           </div>
           <div className={styles.footerBottom}>
-            <span>© 2026 DentalArte. Todos los derechos reservados.</span>
+            <span>© 2026 OdonTool. Todos los derechos reservados.</span>
             <Link href="/login">Área de Pacientes</Link>
           </div>
         </div>
@@ -269,6 +269,6 @@ const features = [
 
 const testimonials = [
   { stars: 5, text: 'El mejor servicio dental que he recibido. El equipo es increíblemente profesional y amable. Mi tratamiento de ortodoncia superó todas mis expectativas.', name: 'Valentina R.', role: 'Paciente — Ortodoncia' },
-  { stars: 5, text: 'Tenía mucho miedo al dentista hasta que vine a DentalArte. La Dra. González me hizo sentir completamente tranquila durante todo el proceso.', name: 'Andrés M.', role: 'Paciente — Implante dental' },
+  { stars: 5, text: 'Tenía mucho miedo al dentista hasta que vine a OdonTool. La Dra. González me hizo sentir completamente tranquila durante todo el proceso.', name: 'Andrés M.', role: 'Paciente — Implante dental' },
   { stars: 5, text: 'El blanqueamiento fue espectacular. En una sola sesión noté una diferencia enorme. Definitivamente el lugar más profesional donde he estado.', name: 'Catalina F.', role: 'Paciente — Blanqueamiento' },
 ]
