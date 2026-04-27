@@ -2,10 +2,12 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import { useApp } from './_app'
 import styles from '../styles/Login.module.css'
 
 export default function Login() {
   const router = useRouter()
+  const { login, register } = useApp()
   const [tab, setTab] = useState('login')
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' })
@@ -44,11 +46,11 @@ export default function Login() {
     if (Object.keys(errs).length) { setErrors(errs); return }
     setLoading(true)
     setErrors({})
-    // Simulate API call
     await new Promise(r => setTimeout(r, 1200))
+    login(loginForm.email, loginForm.password)
     setLoading(false)
-    setSuccess('¡Bienvenido de vuelta! Redirigiendo...')
-    setTimeout(() => router.push('/'), 2000)
+    setSuccess('¡Bienvenido! Redirigiendo al inventario...')
+    setTimeout(() => router.push('/inventory'), 2000)
   }
 
   const handleRegister = async (e) => {
@@ -58,13 +60,10 @@ export default function Login() {
     setLoading(true)
     setErrors({})
     await new Promise(r => setTimeout(r, 1500))
+    register(registerForm.name, registerForm.email, registerForm.phone, registerForm.password)
     setLoading(false)
-    setSuccess('¡Cuenta creada con éxito! Ya puedes iniciar sesión.')
-    setTimeout(() => {
-      setTab('login')
-      setSuccess('')
-      setRegisterForm({ name: '', email: '', phone: '', password: '', confirm: '' })
-    }, 2500)
+    setSuccess('¡Cuenta creada con éxito! Redirigiendo al inventario...')
+    setTimeout(() => router.push('/inventory'), 2500)
   }
 
   const switchTab = (t) => {
@@ -76,45 +75,40 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>DentalArte — {tab === 'login' ? 'Iniciar Sesión' : 'Registrarse'}</title>
+        <title>DentaStock — {tab === 'login' ? 'Iniciar Sesión' : 'Registrarse'}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
       <div className={styles.page}>
-        {/* LEFT PANEL */}
         <div className={styles.leftPanel}>
           <Link href="/" className={styles.logo}>
-            <span className={styles.logoIcon}>✦</span>
-            <span>DentalArte</span>
+            <span className={styles.logoIcon}>🦷</span>
+            <span>DentaStock</span>
           </Link>
           <div className={styles.leftContent}>
             <div className={styles.leftQuote}>
               <span className={styles.leftQuoteMark}>"</span>
-              <p>Tu sonrisa es nuestra mayor recompensa. En DentalArte cuidamos cada detalle de tu salud bucal.</p>
+              <p>Gestiona tu inventario dental de forma inteligente. Controla stock, procedimientos y atenciones en tiempo real.</p>
               <div className={styles.leftQuoteAuthor}>
                 <div className={styles.leftAvatar}>DG</div>
                 <div>
-                  <div className={styles.leftName}>Dra. González</div>
-                  <div className={styles.leftRole}>Directora Clínica</div>
+                  <div className={styles.leftName}>Sistema DentaStock</div>
+                  <div className={styles.leftRole}>Inventario para clínicas</div>
                 </div>
               </div>
             </div>
             <div className={styles.leftStats}>
-              <div className={styles.leftStat}><span>15+</span> Años</div>
-              <div className={styles.leftStat}><span>8.4K</span> Pacientes</div>
-              <div className={styles.leftStat}><span>★ 4.9</span> Google</div>
+              <div className={styles.leftStat}><span>7</span> Boxes</div>
+              <div className={styles.leftStat}><span>17+</span> Insumos</div>
+              <div className={styles.leftStat}><span>6</span> Procedimientos</div>
             </div>
           </div>
-          <div className={styles.leftDecor1}></div>
-          <div className={styles.leftDecor2}></div>
         </div>
 
-        {/* RIGHT PANEL */}
         <div className={styles.rightPanel}>
           <Link href="/" className={styles.backLink}>← Volver al inicio</Link>
 
           <div className={styles.formWrap}>
-            {/* TABS */}
             <div className={styles.tabs}>
               <button
                 className={`${styles.tab} ${tab === 'login' ? styles.tabActive : ''}`}
@@ -130,19 +124,17 @@ export default function Login() {
               </button>
             </div>
 
-            {/* SUCCESS MESSAGE */}
             {success && (
               <div className={styles.successMsg}>
                 <span>✓</span> {success}
               </div>
             )}
 
-            {/* LOGIN FORM */}
             {tab === 'login' && (
               <form onSubmit={handleLogin} className={styles.form} noValidate>
                 <div className={styles.formHeader}>
-                  <h1 className={styles.formTitle}>Bienvenido de vuelta</h1>
-                  <p className={styles.formSub}>Ingresa a tu área de paciente</p>
+                  <h1 className={styles.formTitle}>Bienvenido a DentaStock</h1>
+                  <p className={styles.formSub}>Accede a tu gestión de inventario</p>
                 </div>
 
                 <div className={styles.field}>
@@ -150,7 +142,7 @@ export default function Login() {
                   <input
                     type="email"
                     className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-                    placeholder="tu@correo.com"
+                    placeholder="tu@clinica.com"
                     value={loginForm.email}
                     onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
                   />
@@ -191,12 +183,11 @@ export default function Login() {
               </form>
             )}
 
-            {/* REGISTER FORM */}
             {tab === 'register' && (
               <form onSubmit={handleRegister} className={styles.form} noValidate>
                 <div className={styles.formHeader}>
                   <h1 className={styles.formTitle}>Crear cuenta</h1>
-                  <p className={styles.formSub}>Únete a nuestra comunidad de pacientes</p>
+                  <p className={styles.formSub}>Comienza a gestionar tu inventario</p>
                 </div>
 
                 <div className={styles.field}>
@@ -217,7 +208,7 @@ export default function Login() {
                     <input
                       type="email"
                       className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-                      placeholder="tu@correo.com"
+                      placeholder="tu@clinica.com"
                       value={registerForm.email}
                       onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
                     />
@@ -286,8 +277,7 @@ export default function Login() {
                 <div className={styles.termsRow}>
                   <input type="checkbox" id="terms" className={styles.checkbox} />
                   <label htmlFor="terms" className={styles.termsLabel}>
-                    Acepto los <a href="#" className={styles.termsLink}>términos y condiciones</a> y la{' '}
-                    <a href="#" className={styles.termsLink}>política de privacidad</a>
+                    Acepto los <a href="#" className={styles.termsLink}>términos y condiciones</a>
                   </label>
                 </div>
 

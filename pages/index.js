@@ -1,9 +1,13 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { useApp } from './_app'
 import styles from '../styles/Home.module.css'
 
 export default function Home() {
+  const router = useRouter()
+  const { user } = useApp()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -16,8 +20,8 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>OdonTool — Clínica Odontológica</title>
-        <meta name="description" content="Clínica odontológica de excelencia. Tu sonrisa, nuestra pasión." />
+        <title>DentaStock — Gestión de Inventario Dental</title>
+        <meta name="description" content="Sistema inteligente de gestión de inventario para clínicas odontológicas. Controla 7 boxes, procedimientos y atenciones." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -26,20 +30,28 @@ export default function Home() {
       <nav className={`${styles.nav} ${scrolled ? styles.navScrolled : ''}`}>
         <div className={styles.navInner}>
           <Link href="/" className={styles.logo}>
-            <span className={styles.logoIcon}>✦</span>
+            <span className={styles.logoIcon}>🦷</span>
             <span className={styles.logoText}>OdonTool</span>
           </Link>
 
           <div className={`${styles.navLinks} ${menuOpen ? styles.navOpen : ''}`}>
-            <Link href="#servicios" onClick={() => setMenuOpen(false)}>Servicios</Link>
-            <Link href="#nosotros" onClick={() => setMenuOpen(false)}>Nosotros</Link>
-            <Link href="#testimonios" onClick={() => setMenuOpen(false)}>Testimonios</Link>
+            <Link href="#funciones" onClick={() => setMenuOpen(false)}>Funciones</Link>
+            <Link href="#boxes" onClick={() => setMenuOpen(false)}>7 Boxes</Link>
+            <Link href="#procedimientos" onClick={() => setMenuOpen(false)}>Procedimientos</Link>
             <Link href="#contacto" onClick={() => setMenuOpen(false)}>Contacto</Link>
           </div>
 
           <div className={styles.navActions}>
-            <Link href="/login" className={styles.btnOutline}>Iniciar Sesión</Link>
-            <Link href="/login?tab=register" className={styles.btnPrimary}>Registrarse</Link>
+            {user ? (
+              <Link href="/inventory" className={styles.btnPrimary}>
+                Ir al inventario
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className={styles.btnOutline}>Iniciar Sesión</Link>
+                <Link href="/login?tab=register" className={styles.btnPrimary}>Registrarse</Link>
+              </>
+            )}
           </div>
 
           <button className={styles.hamburger} onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
@@ -54,78 +66,78 @@ export default function Home() {
         <div className={styles.heroDecorLine}></div>
         <div className={styles.heroContent}>
           <div className={styles.heroBadge}>
-            <span>★</span> Clínica de Excelencia — Santiago, Chile
+            <span>★</span> Control Total — 7 Boxes + Bodega General
           </div>
           <h1 className={styles.heroTitle}>
-            Tu sonrisa,<br />
-            <em>nuestra obra</em><br />
-            maestra.
+            Gestión de inventario<br />
+            <em>inteligente</em><br />
+            para tu clínica.
           </h1>
           <p className={styles.heroSub}>
-            Combinamos tecnología de vanguardia con el arte de la odontología para crear sonrisas que transforman vidas.
+            Controla stock de insumos, procedimientos realizados, alertas de vencimiento y transferencias entre boxes automáticamente.
           </p>
           <div className={styles.heroCTA}>
             <Link href="/login?tab=register" className={styles.btnHero}>
-              Agenda tu cita
+              Comenzar ahora
               <span>→</span>
             </Link>
-            <a href="#servicios" className={styles.btnHeroGhost}>
-              Conoce más
+            <a href="#funciones" className={styles.btnHeroGhost}>
+              Ver funciones
             </a>
           </div>
           <div className={styles.heroStats}>
             <div className={styles.stat}>
-              <span className={styles.statNum}>15+</span>
-              <span className={styles.statLabel}>Años de experiencia</span>
+              <span className={styles.statNum}>7</span>
+              <span className={styles.statLabel}>Boxes independientes</span>
             </div>
             <div className={styles.statDivider}></div>
             <div className={styles.stat}>
-              <span className={styles.statNum}>8.400</span>
-              <span className={styles.statLabel}>Pacientes satisfechos</span>
+              <span className={styles.statNum}>17+</span>
+              <span className={styles.statLabel}>Insumos controlados</span>
             </div>
             <div className={styles.statDivider}></div>
             <div className={styles.stat}>
-              <span className={styles.statNum}>98%</span>
-              <span className={styles.statLabel}>Tasa de éxito</span>
+              <span className={styles.statNum}>Real-time</span>
+              <span className={styles.statLabel}>Sincronización</span>
             </div>
           </div>
         </div>
         <div className={styles.heroVisual}>
           <div className={styles.heroCard}>
             <div className={styles.heroCardTop}>
-              <div className={styles.heroCardIcon}>🦷</div>
+              <div className={styles.heroCardIcon}>📊</div>
               <div>
-                <div className={styles.heroCardTitle}>Próxima cita</div>
-                <div className={styles.heroCardSub}>Dra. González · Hoy 15:30</div>
+                <div className={styles.heroCardTitle}>Dashboard</div>
+                <div className={styles.heroCardSub}>Stock · Alertas · Transferencias</div>
               </div>
             </div>
             <div className={styles.heroCardBar}>
               <div className={styles.heroCardBarFill}></div>
             </div>
-            <div className={styles.heroCardFoot}>Confirmada ✓</div>
+            <div className={styles.heroCardFoot}>Actualizado en tiempo real</div>
           </div>
           <div className={styles.heroOrbOuter}>
             <div className={styles.heroOrb}></div>
           </div>
           <div className={styles.heroFloatBadge}>
-            <span>⭐ 4.9</span> Google Reviews
+            <span>⚡</span> Local First
           </div>
         </div>
       </section>
 
-      {/* SERVICES */}
-      <section id="servicios" className={styles.services}>
+      {/* FUNCIONES */}
+      <section id="funciones" className={styles.services}>
         <div className="container">
           <div className={styles.sectionHead}>
-            <span className={styles.sectionLabel}>Nuestros Servicios</span>
-            <h2 className={styles.sectionTitle}>Atención integral<br /><em>para toda la familia</em></h2>
+            <span className={styles.sectionLabel}>Funciones principales</span>
+            <h2 className={styles.sectionTitle}>Todo lo que necesitas<br /><em>para gestionar tu inventario</em></h2>
           </div>
           <div className={styles.servicesGrid}>
-            {services.map((s, i) => (
+            {features.map((f, i) => (
               <div key={i} className={styles.serviceCard}>
-                <div className={styles.serviceIcon}>{s.icon}</div>
-                <h3 className={styles.serviceName}>{s.name}</h3>
-                <p className={styles.serviceDesc}>{s.desc}</p>
+                <div className={styles.serviceIcon}>{f.icon}</div>
+                <h3 className={styles.serviceName}>{f.name}</h3>
+                <p className={styles.serviceDesc}>{f.desc}</p>
                 <div className={styles.serviceArrow}>→</div>
               </div>
             ))}
@@ -133,32 +145,32 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ABOUT */}
-      <section id="nosotros" className={styles.about}>
+      {/* BOXES */}
+      <section id="boxes" className={styles.about}>
         <div className="container">
           <div className={styles.aboutGrid}>
             <div className={styles.aboutLeft}>
               <div className={styles.aboutImgWrap}>
                 <div className={styles.aboutImgPlaceholder}>
-                  <span>🦷</span>
+                  <span>📦</span>
                 </div>
                 <div className={styles.aboutImgBadge}>
-                  <span className={styles.aboutBadgeNum}>2009</span>
-                  <span className={styles.aboutBadgeText}>Desde</span>
+                  <span className={styles.aboutBadgeNum}>7</span>
+                  <span className={styles.aboutBadgeText}>Boxes</span>
                 </div>
               </div>
             </div>
             <div className={styles.aboutRight}>
-              <span className={styles.sectionLabel}>Sobre Nosotros</span>
-              <h2 className={styles.sectionTitle}>Más que una clínica,<br /><em>somos tu familia</em></h2>
+              <span className={styles.sectionLabel}>Arquitectura</span>
+              <h2 className={styles.sectionTitle}>7 Boxes independientes<br /><em>+ Bodega central</em></h2>
               <p className={styles.aboutText}>
-                En OdonTool creemos que una sonrisa saludable es el inicio de una vida plena. Por eso, cada tratamiento lo realizamos con la máxima precisión, tecnología de última generación y una atención cálida y personalizada.
+                Cada box tiene su propio inventario con stock mínimo óptimo. Los insumos se transfieren manualmente desde la bodega general cuando es necesario.
               </p>
               <p className={styles.aboutText}>
-                Nuestro equipo de especialistas está comprometido con tu bienestar dental desde el primer día, acompañándote en cada etapa de tu tratamiento.
+                El sistema detecta automáticamente qué boxes necesitan reabastecimiento y alerta sobre vencimientos próximos.
               </p>
               <div className={styles.aboutFeatures}>
-                {features.map((f, i) => (
+                {boxFeatures.map((f, i) => (
                   <div key={i} className={styles.feature}>
                     <div className={styles.featureCheck}>✓</div>
                     <span>{f}</span>
@@ -170,23 +182,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section id="testimonios" className={styles.testimonials}>
+      {/* PROCEDIMIENTOS */}
+      <section id="procedimientos" className={styles.testimonials}>
         <div className="container">
           <div className={styles.sectionHead}>
-            <span className={styles.sectionLabel}>Testimonios</span>
-            <h2 className={styles.sectionTitle}>Lo que dicen<br /><em>nuestros pacientes</em></h2>
+            <span className={styles.sectionLabel}>Procedimientos</span>
+            <h2 className={styles.sectionTitle}>Control automático<br /><em>de descuentos de inventario</em></h2>
           </div>
           <div className={styles.testimonialsGrid}>
-            {testimonials.map((t, i) => (
+            {procedures.map((p, i) => (
               <div key={i} className={styles.testimonialCard}>
-                <div className={styles.testimonialStars}>{'★'.repeat(t.stars)}</div>
-                <p className={styles.testimonialText}>"{t.text}"</p>
+                <div className={styles.testimonialStars}>{p.icon}</div>
+                <p className={styles.testimonialText}>{p.desc}</p>
                 <div className={styles.testimonialAuthor}>
-                  <div className={styles.testimonialAvatar}>{t.name[0]}</div>
+                  <div className={styles.testimonialAvatar}>{p.name[0]}</div>
                   <div>
-                    <div className={styles.testimonialName}>{t.name}</div>
-                    <div className={styles.testimonialRole}>{t.role}</div>
+                    <div className={styles.testimonialName}>{p.name}</div>
+                    <div className={styles.testimonialRole}>{p.insumos}</div>
                   </div>
                 </div>
               </div>
@@ -200,13 +212,13 @@ export default function Home() {
         <div className="container">
           <div className={styles.ctaBox}>
             <div className={styles.ctaContent}>
-              <h2 className={styles.ctaTitle}>¿Listo para transformar<br /><em>tu sonrisa?</em></h2>
-              <p className={styles.ctaSub}>Regístrate hoy y agenda tu primera consulta sin costo.</p>
+              <h2 className={styles.ctaTitle}>¿Listo para gestionar<br /><em>tu inventario?</em></h2>
+              <p className={styles.ctaSub}>Crea tu cuenta y accede al dashboard completo.</p>
               <Link href="/login?tab=register" className={styles.btnHero}>
                 Comenzar ahora <span>→</span>
               </Link>
             </div>
-            <div className={styles.ctaDecor}>✦</div>
+            <div className={styles.ctaDecor}>🦷</div>
           </div>
         </div>
       </section>
@@ -217,33 +229,33 @@ export default function Home() {
           <div className={styles.footerGrid}>
             <div className={styles.footerBrand}>
               <div className={styles.logo}>
-                <span className={styles.logoIcon}>✦</span>
+                <span className={styles.logoIcon}>🦷</span>
                 <span className={styles.logoText}>OdonTool</span>
               </div>
-              <p>Tu salud dental es nuestra prioridad. Cuidamos tu sonrisa con pasión y excelencia.</p>
+              <p>Sistema inteligente de gestión de inventario para clínicas odontológicas. Controla, sincroniza y optimiza tu stock.</p>
             </div>
             <div className={styles.footerCol}>
-              <h4>Servicios</h4>
+              <h4>Funciones</h4>
               <ul>
-                <li>Ortodoncia</li>
-                <li>Implantes</li>
-                <li>Blanqueamiento</li>
-                <li>Odontología General</li>
+                <li>Dashboard en tiempo real</li>
+                <li>Gestión de 7 boxes</li>
+                <li>Alertas de vencimiento</li>
+                <li>Transferencias controladas</li>
               </ul>
             </div>
             <div className={styles.footerCol}>
               <h4>Contacto</h4>
               <ul>
-                <li>📍 Av. Providencia 1234, Santiago</li>
-                <li>📞 +56 2 2345 6789</li>
-                <li>✉️ hola@odontool.cl</li>
-                <li>🕐 Lun–Vie 9:00–19:00</li>
+                <li>📍 Santiago, Chile</li>
+                <li>📞 +56 2 XXXX XXXX</li>
+                <li>✉️ contacto@dentastock.cl</li>
+                <li>🕐 Disponible 24/7</li>
               </ul>
             </div>
           </div>
           <div className={styles.footerBottom}>
-            <span>© 2026 OdonTool. Todos los derechos reservados.</span>
-            <Link href="/login">Área de Pacientes</Link>
+            <span>© 2026 DentaStock. Todos los derechos reservados.</span>
+            {user && <Link href="/inventory">Ir al inventario</Link>}
           </div>
         </div>
       </footer>
@@ -251,24 +263,59 @@ export default function Home() {
   )
 }
 
-const services = [
-  { icon: '🦷', name: 'Odontología General', desc: 'Revisiones, limpiezas y tratamientos preventivos para mantener tu salud bucal en óptimas condiciones.' },
-  { icon: '😁', name: 'Ortodoncia', desc: 'Alineadores invisibles y brackets de última generación para una sonrisa perfectamente alineada.' },
-  { icon: '✨', name: 'Blanqueamiento Dental', desc: 'Tratamientos profesionales que devuelven la luminosidad y blancura natural a tu sonrisa.' },
-  { icon: '🔩', name: 'Implantes Dentales', desc: 'Soluciones permanentes y naturales para reemplazar dientes perdidos con tecnología de precisión.' },
-  { icon: '👶', name: 'Odontopediatría', desc: 'Atención especializada y amigable para los más pequeños de la familia desde su primera visita.' },
-  { icon: '💎', name: 'Estética Dental', desc: 'Carillas, diseño de sonrisa y tratamientos cosméticos para una imagen radiante y segura.' },
-]
-
 const features = [
-  'Equipamiento de última generación',
-  'Equipo de especialistas certificados',
-  'Atención personalizada y sin dolor',
-  'Planes de pago flexibles',
+  { icon: '📊', name: 'Dashboard en vivo', desc: 'Visualiza el estado completo de tu inventario con KPIs, alertas críticas y stock de boxes en tiempo real.' },
+  { icon: '📦', name: 'Gestión de 7 Boxes', desc: 'Cada box con su propio stock independiente. Detecta automáticamente cuál necesita reabastecimiento.' },
+  { icon: '⇄', name: 'Transferencias manuales', desc: 'Controla cada movimiento desde bodega hacia los boxes. Historial completo de todas las operaciones.' },
+  { icon: '⚠️', name: 'Alertas inteligentes', desc: 'Vencimientos próximos, stock bajo y necesidades de reabastecimiento. Todo en un solo lugar.' },
+  { icon: '✦', name: 'Procedimientos', desc: 'Define procedimientos con sus insumos específicos. Descuenta automáticamente al registrar atenciones.' },
+  { icon: '📝', name: 'Historial completo', desc: 'Registro de todas las atenciones y movimientos. Trazabilidad total de tu inventario.' },
 ]
 
-const testimonials = [
-  { stars: 5, text: 'El mejor servicio dental que he recibido. El equipo es increíblemente profesional y amable. Mi tratamiento de ortodoncia superó todas mis expectativas.', name: 'Valentina R.', role: 'Paciente — Ortodoncia' },
-  { stars: 5, text: 'Tenía mucho miedo al dentista hasta que vine a OdonTool. La Dra. González me hizo sentir completamente tranquila durante todo el proceso.', name: 'Andrés M.', role: 'Paciente — Implante dental' },
-  { stars: 5, text: 'El blanqueamiento fue espectacular. En una sola sesión noté una diferencia enorme. Definitivamente el lugar más profesional donde he estado.', name: 'Catalina F.', role: 'Paciente — Blanqueamiento' },
+const boxFeatures = [
+  'Stock independiente por box',
+  'Mínimo óptimo configurabe',
+  'Detección automática de necesidades',
+  'Transferencias desde bodega',
+  'Set base por consulta configurado',
+  'Alertas de vencimiento por ubicación',
+]
+
+const procedures = [
+  { 
+    icon: '📋', 
+    name: 'Consulta / Revisión', 
+    desc: 'Procedimiento base. Descuenta set básico (mascarillas, guantes, pechera, boquilla).',
+    insumos: 'Set base automático'
+  },
+  { 
+    icon: '💉', 
+    name: 'Anestesia', 
+    desc: 'Infiltrativa o troncular. Descuenta carpules y agujas según el tipo.',
+    insumos: 'Anestesia + agujas'
+  },
+  { 
+    icon: '✨', 
+    name: 'Obturación', 
+    desc: 'Con resina compuesta. Descuenta resina, pinceles y set base.',
+    insumos: 'Resina + pinceles'
+  },
+  { 
+    icon: '🌀', 
+    name: 'Impresión', 
+    desc: 'Con silicona pesada. Descuenta silicona y oclufast.',
+    insumos: 'Silicona + oclufast'
+  },
+  { 
+    icon: '🧹', 
+    name: 'Higiene', 
+    desc: 'Limpieza y educación. Entrega set de higiene al paciente.',
+    insumos: 'Set de higiene'
+  },
+  { 
+    icon: '🔧', 
+    name: 'Personalizado', 
+    desc: 'Define tus propios procedimientos con los insumos específicos que uses.',
+    insumos: 'Insumos a medida'
+  },
 ]
