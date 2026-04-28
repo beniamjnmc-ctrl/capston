@@ -39,6 +39,7 @@ export default function Home() {
             <Link href="#boxes" onClick={() => setMenuOpen(false)}>7 Boxes</Link>
             <Link href="#procedimientos" onClick={() => setMenuOpen(false)}>Procedimientos</Link>
             <Link href="#contacto" onClick={() => setMenuOpen(false)}>Contacto</Link>
+            <Link href="https://canva.link/dvew1x0h0n6h01a" onClick={() => setMenuOpen(false)}>Presentación</Link>
           </div>
 
           <div className={styles.navActions}>
