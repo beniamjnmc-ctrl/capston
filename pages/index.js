@@ -20,7 +20,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>DentaStock — Gestión de Inventario Dental</title>
+        <title>OdonTool — Gestión de Inventario Dental</title>
         <meta name="description" content="Sistema inteligente de gestión de inventario para clínicas odontológicas. Controla 7 boxes, procedimientos y atenciones." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
@@ -29,9 +29,9 @@ export default function Home() {
       {/* NAV */}
       <nav className={`${styles.nav} ${scrolled ? styles.navScrolled : ''}`}>
         <div className={styles.navInner}>
-          <Link href="/" className={styles.logo}>
+          <Link href="/" className={styles.logo} style={{ fontSize: '28px' }}>
             <span className={styles.logoIcon}>🦷</span>
-            <span className={styles.logoText}>OdonTool</span>
+            <span className={styles.logoText} style={{ fontWeight: '800' }}>OdonTool</span>
           </Link>
 
           <div className={`${styles.navLinks} ${menuOpen ? styles.navOpen : ''}`}>
@@ -66,15 +66,15 @@ export default function Home() {
         <div className={styles.heroDecorLine}></div>
         <div className={styles.heroContent}>
           <div className={styles.heroBadge}>
-            <span>★</span> Control Total — 7 Boxes + Bodega General
+            <span>★</span> Control Total — Clínica Auil
           </div>
-          <h1 className={styles.heroTitle}>
-            Gestión de inventario<br />
-            <em>inteligente</em><br />
-            para tu clínica.
+          <h1 className={styles.heroTitle} style={{ fontSize: '72px', lineHeight: '1', marginBottom: '30px' }}>
+            OdonTool:<br />
+            <em>inventario</em><br />
+            inteligente.
           </h1>
-          <p className={styles.heroSub}>
-            Controla stock de insumos, procedimientos realizados, alertas de vencimiento y transferencias entre boxes automáticamente.
+          <p className={styles.heroSub} style={{ fontSize: '20px', maxWidth: '600px' }}>
+            Optimiza la gestión de insumos, procedimientos y stock de tus 7 boxes automáticamente con el respaldo del modelo ROP.
           </p>
           <div className={styles.heroCTA}>
             <Link href="/login?tab=register" className={styles.btnHero}>
@@ -92,7 +92,7 @@ export default function Home() {
             </div>
             <div className={styles.statDivider}></div>
             <div className={styles.stat}>
-              <span className={styles.statNum}>17+</span>
+              <span className={styles.statNum}>20+</span>
               <span className={styles.statLabel}>Insumos controlados</span>
             </div>
             <div className={styles.statDivider}></div>
@@ -183,23 +183,20 @@ export default function Home() {
       </section>
 
       {/* PROCEDIMIENTOS */}
-      <section id="procedimientos" className={styles.testimonials}>
+      <section id="procedimientos" className={styles.services} style={{ backgroundColor: 'var(--bg-secondary)', padding: '80px 0' }}>
         <div className="container">
           <div className={styles.sectionHead}>
-            <span className={styles.sectionLabel}>Procedimientos</span>
+            <span className={styles.sectionLabel}>Procedimientos y Kits</span>
             <h2 className={styles.sectionTitle}>Control automático<br /><em>de descuentos de inventario</em></h2>
           </div>
-          <div className={styles.testimonialsGrid}>
+          <div className={styles.servicesGrid}>
             {procedures.map((p, i) => (
-              <div key={i} className={styles.testimonialCard}>
-                <div className={styles.testimonialStars}>{p.icon}</div>
-                <p className={styles.testimonialText}>{p.desc}</p>
-                <div className={styles.testimonialAuthor}>
-                  <div className={styles.testimonialAvatar}>{p.name[0]}</div>
-                  <div>
-                    <div className={styles.testimonialName}>{p.name}</div>
-                    <div className={styles.testimonialRole}>{p.insumos}</div>
-                  </div>
+              <div key={i} className={styles.serviceCard}>
+                <div className={styles.serviceIcon}>{p.icon}</div>
+                <h3 className={styles.serviceName}>{p.name}</h3>
+                <p className={styles.serviceDesc}>{p.desc}</p>
+                <div style={{ marginTop: '15px', padding: '10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', fontSize: '13px', fontWeight: '500', color: 'var(--primary)' }}>
+                  📦 Descuenta: {p.insumos}
                 </div>
               </div>
             ))}
@@ -232,7 +229,7 @@ export default function Home() {
                 <span className={styles.logoIcon}>🦷</span>
                 <span className={styles.logoText}>OdonTool</span>
               </div>
-              <p>Sistema inteligente de gestión de inventario para clínicas odontológicas. Controla, sincroniza y optimiza tu stock.</p>
+              <p>Sistema inteligente de gestión de inventario para la Clínica Auil. Desarrollado por Grupo 9 | UAI.</p>
             </div>
             <div className={styles.footerCol}>
               <h4>Funciones</h4>
@@ -248,13 +245,13 @@ export default function Home() {
               <ul>
                 <li>📍 Santiago, Chile</li>
                 <li>📞 +56 2 XXXX XXXX</li>
-                <li>✉️ contacto@dentastock.cl</li>
+                <li>✉️ contacto@odontool.cl</li>
                 <li>🕐 Disponible 24/7</li>
               </ul>
             </div>
           </div>
           <div className={styles.footerBottom}>
-            <span>© 2026 DentaStock. Todos los derechos reservados.</span>
+            <span>© 2026 OdonTool. Todos los derechos reservados.</span>
             {user && <Link href="/inventory">Ir al inventario</Link>}
           </div>
         </div>
@@ -268,7 +265,7 @@ const features = [
   { icon: '📦', name: 'Gestión de 7 Boxes', desc: 'Cada box con su propio stock independiente. Detecta automáticamente cuál necesita reabastecimiento.' },
   { icon: '⇄', name: 'Transferencias manuales', desc: 'Controla cada movimiento desde bodega hacia los boxes. Historial completo de todas las operaciones.' },
   { icon: '⚠️', name: 'Alertas inteligentes', desc: 'Vencimientos próximos, stock bajo y necesidades de reabastecimiento. Todo en un solo lugar.' },
-  { icon: '✦', name: 'Procedimientos', desc: 'Define procedimientos con sus insumos específicos. Descuenta automáticamente al registrar atenciones.' },
+  { icon: '✦', name: 'Kits de Procedimientos', desc: 'Define procedimientos con sus insumos específicos. Descuenta automáticamente al registrar atenciones.' },
   { icon: '📝', name: 'Historial completo', desc: 'Registro de todas las atenciones y movimientos. Trazabilidad total de tu inventario.' },
 ]
 
@@ -285,32 +282,32 @@ const procedures = [
   { 
     icon: '📋', 
     name: 'Consulta / Revisión', 
-    desc: 'Procedimiento base. Descuenta set básico (mascarillas, guantes, pechera, boquilla).',
-    insumos: 'Set base automático'
+    desc: 'Procedimiento base y fundamental. Incluye exclusivamente los insumos del set.',
+    insumos: '2 Mascarillas, 2 Guantes, 1 Pechera, 2 Boquillas'
   },
   { 
     icon: '💉', 
-    name: 'Anestesia', 
-    desc: 'Infiltrativa o troncular. Descuenta carpules y agujas según el tipo.',
-    insumos: 'Anestesia + agujas'
+    name: 'Anestesia Infiltrativa', 
+    desc: 'Infiltrativa o troncular. Añade la protección base a los carpules y agujas.',
+    insumos: 'Set Básico + Anestesia + Agujas'
   },
   { 
     icon: '✨', 
-    name: 'Obturación', 
-    desc: 'Con resina compuesta. Descuenta resina, pinceles y set base.',
-    insumos: 'Resina + pinceles'
+    name: 'Obturación con Resina', 
+    desc: 'Tratamiento restaurador con resina compuesta y pinceles.',
+    insumos: 'Set Básico + Resina + Pinceles'
   },
   { 
     icon: '🌀', 
-    name: 'Impresión', 
-    desc: 'Con silicona pesada. Descuenta silicona y oclufast.',
-    insumos: 'Silicona + oclufast'
+    name: 'Impresión con Silicona', 
+    desc: 'Toma de modelos de la cavidad oral del paciente.',
+    insumos: 'Set Básico + Silicona + Oclufast'
   },
   { 
-    icon: '🧹', 
-    name: 'Higiene', 
-    desc: 'Limpieza y educación. Entrega set de higiene al paciente.',
-    insumos: 'Set de higiene'
+    icon: '💎', 
+    name: 'Blanqueamiento Dental', 
+    desc: 'Tratamiento estético avanzado con protección gingival completa.',
+    insumos: 'Set Básico + Separador, Pincel, Jeringa, Protector'
   },
   { 
     icon: '🔧', 

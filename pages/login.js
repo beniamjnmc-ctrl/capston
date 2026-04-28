@@ -24,6 +24,7 @@ export default function Login() {
     const e = {}
     if (!loginForm.email) e.email = 'El correo es requerido'
     else if (!/\S+@\S+\.\S+/.test(loginForm.email)) e.email = 'Correo inválido'
+    else if (!loginForm.email.toLowerCase().endsWith('@auil.cl')) e.email = 'Acceso restringido: Solo correos @auil.cl'
     if (!loginForm.password) e.password = 'La contraseña es requerida'
     return e
   }
@@ -33,6 +34,7 @@ export default function Login() {
     if (!registerForm.name) e.name = 'El nombre es requerido'
     if (!registerForm.email) e.email = 'El correo es requerido'
     else if (!/\S+@\S+\.\S+/.test(registerForm.email)) e.email = 'Correo inválido'
+    else if (!registerForm.email.toLowerCase().endsWith('@auil.cl')) e.email = 'Registro restringido: Solo correos @auil.cl'
     if (!registerForm.phone) e.phone = 'El teléfono es requerido'
     if (!registerForm.password) e.password = 'La contraseña es requerida'
     else if (registerForm.password.length < 8) e.password = 'Mínimo 8 caracteres'
@@ -75,7 +77,7 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>DentaStock — {tab === 'login' ? 'Iniciar Sesión' : 'Registrarse'}</title>
+        <title>OdonTool — {tab === 'login' ? 'Iniciar Sesión' : 'Registrarse'}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -83,17 +85,17 @@ export default function Login() {
         <div className={styles.leftPanel}>
           <Link href="/" className={styles.logo}>
             <span className={styles.logoIcon}>🦷</span>
-            <span>DentaStock</span>
+            <span>OdonTool</span>
           </Link>
           <div className={styles.leftContent}>
             <div className={styles.leftQuote}>
               <span className={styles.leftQuoteMark}>"</span>
               <p>Gestiona tu inventario dental de forma inteligente. Controla stock, procedimientos y atenciones en tiempo real.</p>
               <div className={styles.leftQuoteAuthor}>
-                <div className={styles.leftAvatar}>DG</div>
+                <div className={styles.leftAvatar}>OA</div>
                 <div>
-                  <div className={styles.leftName}>Sistema DentaStock</div>
-                  <div className={styles.leftRole}>Inventario para clínicas</div>
+                  <div className={styles.leftName}>Sistema OdonTool</div>
+                  <div className={styles.leftRole}>Inventario para Clínica Auil</div>
                 </div>
               </div>
             </div>
@@ -133,16 +135,16 @@ export default function Login() {
             {tab === 'login' && (
               <form onSubmit={handleLogin} className={styles.form} noValidate>
                 <div className={styles.formHeader}>
-                  <h1 className={styles.formTitle}>Bienvenido a DentaStock</h1>
-                  <p className={styles.formSub}>Accede a tu gestión de inventario</p>
+                  <h1 className={styles.formTitle}>Bienvenido a OdonTool</h1>
+                  <p className={styles.formSub}>Acceso exclusivo para personal de la clínica</p>
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>Correo electrónico</label>
+                  <label className={styles.label}>Correo electrónico corporativo</label>
                   <input
                     type="email"
                     className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-                    placeholder="tu@clinica.com"
+                    placeholder="usuario@auil.cl"
                     value={loginForm.email}
                     onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
                   />
@@ -187,7 +189,7 @@ export default function Login() {
               <form onSubmit={handleRegister} className={styles.form} noValidate>
                 <div className={styles.formHeader}>
                   <h1 className={styles.formTitle}>Crear cuenta</h1>
-                  <p className={styles.formSub}>Comienza a gestionar tu inventario</p>
+                  <p className={styles.formSub}>Registro exclusivo para personal de Clínica Auil</p>
                 </div>
 
                 <div className={styles.field}>
@@ -204,11 +206,11 @@ export default function Login() {
 
                 <div className={styles.fieldRow}>
                   <div className={styles.field}>
-                    <label className={styles.label}>Correo electrónico</label>
+                    <label className={styles.label}>Correo corporativo</label>
                     <input
                       type="email"
                       className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-                      placeholder="tu@clinica.com"
+                      placeholder="usuario@auil.cl"
                       value={registerForm.email}
                       onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
                     />

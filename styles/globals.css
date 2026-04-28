@@ -1,33 +1,30 @@
+/* globals.css - Versión Dental Fresh completa */
+
 :root {
-  --primary: #185fa5;
-  --success: #0f6e56;
-  --warning: #854f0b;
-  --danger: #a32d2d;
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f3;
-  --bg-tertiary: #ededea;
-  --text-primary: #1a1a1a;
-  --text-secondary: #6b6b6b;
-  --border: rgba(0, 0, 0, 0.1);
-  --border-secondary: rgba(0, 0, 0, 0.18);
-  --border-tertiary: rgba(0, 0, 0, 0.08);
-  --border-info: rgba(24, 95, 165, 0.3);
-  --radius: 8px;
+  --primary: #0077b6;      /* Azul Dental */
+  --secondary: #90e0ef;    /* Celeste Agua */
+  --success: #11caa0;      /* Verde Clínico */
+  --warning: #ffb703;
+  --danger: #e63946;
+  --bg-primary: #ffffff;   /* Fondo Blanco Puro */
+  --bg-secondary: #f8fafc; /* Gris tenue */
+  --bg-tertiary: #f1f5f9;  /* Fondo general */
+  --text-primary: #1e293b; /* Texto principal (casi negro) */
+  --text-secondary: #64748b; /* Texto secundario (gris) */
+  --border: #e2e8f0;
+  --radius: 12px;          /* Bordes un poco más redondeados */
   --transition: all 0.15s ease;
 }
 
+/* Forzamos a que el modo oscuro mantenga los colores claros y limpios de clínica */
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary: #b5d4f4;
-    --success: #9fe1cb;
-    --warning: #fac775;
-    --danger: #f7c1c1;
-    --bg-primary: #1e1e1c;
-    --bg-secondary: #28281f;
-    --bg-tertiary: #1a1a17;
-    --text-primary: #e8e8e0;
-    --text-secondary: #888780;
-    --border: rgba(255, 255, 255, 0.08);
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
   }
 }
 
@@ -93,10 +90,11 @@ input, select, textarea {
 
 .kpi {
   background: var(--bg-primary);
-  border: 0.5px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
   text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .kpi-label {
@@ -126,10 +124,11 @@ input, select, textarea {
 
 .card {
   background: var(--bg-primary);
-  border: 0.5px solid var(--border);
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 20px;
   margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .card h3 {
@@ -165,12 +164,12 @@ th {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 8px;
-  border-bottom: 0.5px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 td {
   padding: 10px 8px;
-  border-bottom: 0.5px solid var(--border);
+  border-bottom: 1px solid var(--border);
   color: var(--text-primary);
   vertical-align: middle;
 }
@@ -198,25 +197,25 @@ tr:hover td {
 
 .alert {
   padding: 12px;
-  border-radius: var(--radius);
+  border-radius: 8px;
   font-size: 12px;
-  border: 0.5px solid;
+  border: 1px solid;
 }
 
 .alert.critical {
-  background: rgba(163, 45, 45, 0.15);
+  background: rgba(230, 57, 70, 0.1);
   border-color: var(--danger);
   color: var(--danger);
 }
 
 .alert.high {
-  background: rgba(133, 79, 11, 0.15);
+  background: rgba(255, 183, 3, 0.1);
   border-color: var(--warning);
-  color: var(--warning);
+  color: #d97706; /* Naranja oscurecido para mejor lectura */
 }
 
 .alert.medium {
-  background: rgba(24, 95, 165, 0.15);
+  background: rgba(0, 119, 182, 0.1);
   border-color: var(--primary);
   color: var(--primary);
 }
@@ -232,17 +231,17 @@ tr:hover td {
 }
 
 .badge.critical {
-  background: rgba(163, 45, 45, 0.2);
+  background: rgba(230, 57, 70, 0.15);
   color: var(--danger);
 }
 
 .badge.high {
-  background: rgba(133, 79, 11, 0.2);
-  color: var(--warning);
+  background: rgba(255, 183, 3, 0.2);
+  color: #d97706;
 }
 
 .badge.medium {
-  background: rgba(24, 95, 165, 0.2);
+  background: rgba(0, 119, 182, 0.15);
   color: var(--primary);
 }
 
@@ -269,8 +268,8 @@ tr:hover td {
 .form-group input,
 .form-group select {
   padding: 8px 10px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 12px;
@@ -280,14 +279,14 @@ tr:hover td {
 .form-group input:focus,
 .form-group select:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(24, 95, 165, 0.15);
+  box-shadow: 0 0 0 2px rgba(0, 119, 182, 0.15);
 }
 
 /* BUTTONS */
 .btn {
   padding: 8px 14px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 12px;
@@ -307,7 +306,7 @@ tr:hover td {
 }
 
 .btn-primary:hover {
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .btn-success {
@@ -332,8 +331,8 @@ tr:hover td {
 
 .box-tab {
   padding: 6px 12px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   background: var(--bg-primary);
   color: var(--text-secondary);
   font-size: 12px;
@@ -365,8 +364,8 @@ tr:hover td {
 /* PROCEDURES */
 .proc-item {
   padding: 12px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   margin-bottom: 8px;
 }
 
@@ -394,8 +393,8 @@ tr:hover td {
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   background: var(--bg-primary);
   font-size: 12px;
   cursor: pointer;
@@ -419,7 +418,7 @@ tr:hover td {
   padding: 8px 0;
   font-size: 12px;
   color: var(--text-primary);
-  border-bottom: 0.5px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .actions-list li:last-child {
