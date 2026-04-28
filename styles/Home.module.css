@@ -173,13 +173,14 @@
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 40px;
 }
 
 .heroContent {
   max-width: 600px;
   position: relative;
   z-index: 2;
+  margin-left: 20px;
 }
 
 .heroBadge {
