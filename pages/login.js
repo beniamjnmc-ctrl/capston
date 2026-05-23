@@ -7,7 +7,8 @@ import styles from '../styles/Login.module.css'
 
 export default function Login() {
   const router = useRouter()
-  const { login, register } = useApp()
+  // Asumimos que login y register vienen del contexto, pero manejaremos la sesión localmente aquí también
+  const { login, register } = useApp() 
   const [tab, setTab] = useState('login')
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' })
@@ -19,6 +20,23 @@ export default function Login() {
   useEffect(() => {
     if (router.query.tab === 'register') setTab('register')
   }, [router.query])
+
+  // --- BASE DE DATOS SIMULADA (MOCK DB) ---
+  // Esta función crea o lee los usuarios guardados en el navegador
+  const getMockUsers = () => {
+    if (typeof window === 'undefined') return [];
+    const stored = localStorage.getItem('odontool_users');
+    if (stored) return JSON.parse(stored);
+
+    // Usuarios por defecto (¡Usa estos para probar!)
+    const defaultUsers = [
+      { name: 'Administrador Auil', email: 'admin@auil.cl', phone: '+56900000000', password: 'admin', role: 'admin' },
+      { name: 'Dr. Roberto Auil', email: 'doctor@auil.cl', phone: '+56911111111', password: 'doctor', role: 'clinico' },
+      { name: 'Asistente Dental', email: 'asistente@auil.cl', phone: '+56922222222', password: 'asistente', role: 'asistente' }
+    ];
+    localStorage.setItem('odontool_users', JSON.stringify(defaultUsers));
+    return defaultUsers;
+  };
 
   const validateLogin = () => {
     const e = {}
@@ -46,12 +64,29 @@ export default function Login() {
     e.preventDefault()
     const errs = validateLogin()
     if (Object.keys(errs).length) { setErrors(errs); return }
+    
     setLoading(true)
     setErrors({})
-    await new Promise(r => setTimeout(r, 1200))
-    login(loginForm.email, loginForm.password)
+    await new Promise(r => setTimeout(r, 1200)) // Simula la carga de red
+
+    // --- NUEVA LÓGICA DE VALIDACIÓN ---
+    const users = getMockUsers();
+    const foundUser = users.find(u => u.email === loginForm.email && u.password === loginForm.password);
+
+    if (!foundUser) {
+      setLoading(false)
+      setErrors({ email: 'Credenciales incorrectas o usuario no registrado.' })
+      return
+    }
+
+    // 1. Guardamos la "sesión" activa en el navegador
+    localStorage.setItem('odontool_session', JSON.stringify(foundUser));
+    
+    // 2. Avisamos al contexto general de tu app (si lo tienes configurado)
+    if (login) login(foundUser); 
+
     setLoading(false)
-    setSuccess('¡Bienvenido! Redirigiendo al inventario...')
+    setSuccess(`¡Bienvenido ${foundUser.name}! Accediendo como ${foundUser.role.toUpperCase()}...`)
     setTimeout(() => router.push('/inventory'), 2000)
   }
 
@@ -59,10 +94,37 @@ export default function Login() {
     e.preventDefault()
     const errs = validateRegister()
     if (Object.keys(errs).length) { setErrors(errs); return }
+    
     setLoading(true)
     setErrors({})
+    
+    // Validar si el correo ya existe
+    const users = getMockUsers();
+    if (users.find(u => u.email === registerForm.email)) {
+      setLoading(false);
+      setErrors({ email: 'Este correo ya se encuentra registrado.' });
+      return;
+    }
+
     await new Promise(r => setTimeout(r, 1500))
-    register(registerForm.name, registerForm.email, registerForm.phone, registerForm.password)
+
+    // Crear el nuevo usuario (Por defecto entra como 'clinico')
+    const newUser = {
+      name: registerForm.name,
+      email: registerForm.email,
+      phone: registerForm.phone,
+      password: registerForm.password,
+      role: 'clinico' 
+    };
+
+    // Guardar en nuestra base de datos simulada
+    users.push(newUser);
+    localStorage.setItem('odontool_users', JSON.stringify(users));
+
+    // Iniciar sesión automáticamente
+    localStorage.setItem('odontool_session', JSON.stringify(newUser));
+    if (register) register(newUser);
+
     setLoading(false)
     setSuccess('¡Cuenta creada con éxito! Redirigiendo al inventario...')
     setTimeout(() => router.push('/inventory'), 2500)
