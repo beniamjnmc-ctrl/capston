@@ -4,15 +4,19 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "npm run kill-dev & npm run clean & npm run dev",
+    "kill-dev": "taskkill /IM node.exe /F 2>nul || echo 'No servers running'",
+    "clean": "rmdir /s /q .next 2>nul || echo '.next already clean'",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
-    "next": "14.2.3",
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
+    "next": "^16.2.6",
+    "postcss": "^8.5.15",
     "react": "^18",
     "react-dom": "^18",
-    "@supabase/supabase-js": "latest",
-    "@supabase/ssr": "latest",
     "recharts": "^2.10.0"
   }
 }

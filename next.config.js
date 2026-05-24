@@ -1,11 +1,16 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   // Optimizaciones para producción
-  swcMinify: true,
   compress: true,
   // Configuración para Vercel
   output: 'standalone',
+  // Configuración de Turbopack
+  turbopack: {
+    root: path.resolve(__dirname)
+  },
   // Headers de seguridad
   async headers() {
     return [

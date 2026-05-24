@@ -68,6 +68,11 @@ export default function Inventory() {
   if (loading || !user || !inventoryData) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>Cargando OdonTool...</div>
 
   const isAdmin = user?.role === 'admin';
+  const isClinico = user?.role === 'clinico';
+  const isAsistente = user?.role === 'asistente';
+  const canViewKits = isAdmin || isClinico || isAsistente;
+  const canUseKits = isAdmin || isClinico;
+  const canManageKits = isAdmin;
 
   return (
     <>
@@ -89,7 +94,7 @@ export default function Inventory() {
             {isAdmin && <button className={`${styles.navItem} ${currentPage === 'compras' ? styles.active : ''}`} onClick={() => setCurrentPage('compras')}><span>🛒</span> Órdenes de Compra</button>}
 
             <div className={styles.navSection}>Clínica</div>
-            {isAdmin && <button className={`${styles.navItem} ${currentPage === 'procedimientos' ? styles.active : ''}`} onClick={() => setCurrentPage('procedimientos')}><span>✦</span> Kits de Procedimiento</button>}
+            {canViewKits && <button className={`${styles.navItem} ${currentPage === 'procedimientos' ? styles.active : ''}`} onClick={() => setCurrentPage('procedimientos')}><span>✦</span> Kits de Procedimiento</button>}
             <button className={`${styles.navItem} ${currentPage === 'registrar' ? styles.active : ''}`} onClick={() => setCurrentPage('registrar')}><span>⊕</span> Registrar atención</button>
             <button className={`${styles.navItem} ${currentPage === 'historial' ? styles.active : ''}`} onClick={() => setCurrentPage('historial')}><span>≡</span> Historial</button>
             
@@ -163,8 +168,8 @@ export default function Inventory() {
             {currentPage === 'boxes' && <BoxesPage data={inventoryData} activeBox={activeBox} setActiveBox={setActiveBox} updateInventory={updateInventory} isAdmin={isAdmin} openModal={() => setShowProductModal(true)} />}
             {currentPage === 'transferir' && <TransferirPage data={inventoryData} updateInventory={updateInventory} />}
             {currentPage === 'compras' && isAdmin && <ComprasPage data={inventoryData} updateInventory={updateInventory} openCreate={() => setShowCreatePOModal(true)} openReceive={(po) => { setSelectedPO(po); setShowReceivePOModal(true); }} />}
-            {currentPage === 'procedimientos' && isAdmin && <ProcedimientosPage data={inventoryData} updateInventory={updateInventory} openModal={() => setShowProcModal(true)} />}
-            {currentPage === 'registrar' && <RegistrarPage data={inventoryData} updateInventory={updateInventory} currentUser={user} />}
+            {currentPage === 'procedimientos' && canViewKits && <ProcedimientosPage data={inventoryData} updateInventory={updateInventory} openModal={() => setShowProcModal(true)} canManageKits={canManageKits} />}
+            {currentPage === 'registrar' && <RegistrarPage data={inventoryData} updateInventory={updateInventory} currentUser={user} canUseKits={canUseKits} />}
             {currentPage === 'historial' && <HistorialPage data={inventoryData} />}
             {currentPage === 'usuarios' && isAdmin && <UsuariosPage usersDb={usersDb} registerNewUser={registerNewUser} deleteUser={deleteUser} currentUser={user} />}
           </div>
@@ -189,6 +194,9 @@ function Dashboard({ data, alerts = [] }) {
   const [selectedMonth, setSelectedMonth] = useState('05');
   const [showDetail, setShowDetail] = useState(false);
 
+  const productionData = data?.productionData || []
+  const useProductionData = productionData.length > 0
+
   const filteredHistory = useMemo(() => {
     const history = data?.attendHistory || [];
     if (viewMode === 'all') return history;
@@ -201,45 +209,100 @@ function Dashboard({ data, alerts = [] }) {
     });
   }, [data, viewMode, selectedYear, selectedMonth]);
 
+  const filteredProduction = useMemo(() => {
+    if (!useProductionData) return [];
+    if (viewMode === 'all') return productionData;
+    return productionData.filter(entry => {
+      const year = entry.date.substring(0, 4);
+      const month = entry.date.substring(5, 7);
+      if (viewMode === 'annual') return year === selectedYear;
+      if (viewMode === 'monthly') return year === selectedYear && month === selectedMonth;
+      return true;
+    });
+  }, [productionData, useProductionData, viewMode, selectedYear, selectedMonth]);
+
+  const displayedData = useProductionData ? filteredProduction : filteredHistory
+  const detailCount = useProductionData ? filteredProduction.reduce((sum, entry) => sum + entry.quantity, 0) : filteredHistory.length
+  const detailLabel = useProductionData ? 'Producción' : 'Procedimientos'
+
   const totalBajo = alerts?.filter(a => a.type === 'stock')?.length || 0
   const totalVenc = alerts?.filter(a => a.type === 'vencimiento')?.length || 0
+  const totalAtenciones = useProductionData ? displayedData.reduce((sum, entry) => sum + entry.quantity, 0) : displayedData.length
 
   const historyData = useMemo(() => {
     const counts = {};
-    filteredHistory.forEach(a => { counts[a.fecha] = (counts[a.fecha] || 0) + 1 });
-    return Object.keys(counts).sort().map(date => ({ date, atenciones: counts[date] })); 
-  }, [filteredHistory]);
+    displayedData.forEach(item => {
+      const date = item.date || item.fecha;
+      if (!date) return;
+      counts[date] = (counts[date] || 0) + (useProductionData ? item.quantity : 1);
+    });
+    return Object.keys(counts).sort().map(date => ({ date, atenciones: counts[date] }));
+  }, [displayedData, useProductionData]);
 
   const procsData = useMemo(() => {
     const counts = {};
-    filteredHistory.forEach(a => {
-      const procs = a.procs.split(' + ');
-      procs.forEach(p => { if(p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1; });
-    });
+    if (useProductionData) {
+      displayedData.forEach(entry => {
+        counts[entry.description] = (counts[entry.description] || 0) + entry.quantity;
+      });
+    } else {
+      displayedData.forEach(a => {
+        const procs = a.procs.split(' + ');
+        procs.forEach(p => {
+          if (p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1;
+        });
+      });
+    }
     return Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 10).map(e => ({ name: e[0], cantidad: e[1] }));
-  }, [filteredHistory]);
+  }, [displayedData, useProductionData]);
+
+  const filteredAttendHistory = useMemo(() => {
+    const history = data?.attendHistory || [];
+    if (viewMode === 'all') return history;
+    return history.filter(a => {
+      const year = a.fecha.substring(0, 4);
+      const month = a.fecha.substring(5, 7);
+      if (viewMode === 'annual') return year === selectedYear;
+      if (viewMode === 'monthly') return year === selectedYear && month === selectedMonth;
+      return true;
+    });
+  }, [data, viewMode, selectedYear, selectedMonth]);
 
   const allProcsData = useMemo(() => {
     const counts = {};
-    filteredHistory.forEach(a => {
-      const procs = a.procs.split(' + ');
-      procs.forEach(p => { if(p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1; });
-    });
+    if (useProductionData) {
+      displayedData.forEach(entry => {
+        counts[entry.description] = (counts[entry.description] || 0) + entry.quantity;
+      });
+    } else {
+      displayedData.forEach(a => {
+        const procs = a.procs.split(' + ');
+        procs.forEach(p => {
+          if (p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1;
+        });
+      });
+    }
     return Object.entries(counts).sort((a,b) => b[1]-a[1]).map(e => ({ name: e[0], cantidad: e[1] }));
-  }, [filteredHistory]);
+  }, [displayedData, useProductionData]);
 
   const insumosData = useMemo(() => {
     const counts = {};
-    filteredHistory.forEach(a => {
-      if(!a.ins) return;
+    filteredAttendHistory.forEach(a => {
+      if (!a.ins) return;
       const items = a.ins.split(', ');
       items.forEach(item => {
         const match = item.match(/(.+?)\s*\(\-(.+?)\)/);
-        if(match) { const name = match[1].trim(); const qty = parseFloat(match[2]); counts[name] = (counts[name] || 0) + qty; }
+        if (match) {
+          const name = match[1].trim();
+          const qty = parseFloat(match[2]);
+          if (!Number.isNaN(qty)) {
+            counts[name] = (counts[name] || 0) + qty;
+          }
+        }
       });
     });
     return Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 10).map(e => ({ name: e[0], consumo: e[1] }));
-  }, [filteredHistory]);
+  }, [filteredAttendHistory]);
 
   return (
     <div className="page-content">
@@ -267,8 +330,9 @@ function Dashboard({ data, alerts = [] }) {
       <div className="kpis" style={{ marginBottom: '20px' }}>
         <div className="kpi"><div className="kpi-label">Insumos Críticos</div><div className="kpi-val danger">{totalBajo}</div></div>
         <div className="kpi"><div className="kpi-label">Próximos a Vencer</div><div className="kpi-val warning">{totalVenc}</div></div>
-        <div className="kpi"><div className="kpi-label">Atenciones Totales</div><div className="kpi-val">{filteredHistory?.length || 0}</div></div>
+        <div className="kpi"><div className="kpi-label">Atenciones Totales</div><div className="kpi-val">{totalAtenciones || 0}</div></div>
       </div>
+
 
       <div className="card" style={{ height: '350px', marginBottom: '20px', cursor: 'pointer' }} onDoubleClick={() => setShowDetail(true)}>
         <h3>Flujo de Atenciones (Doble clic para ver TODOS los procedimientos)</h3>
@@ -299,7 +363,7 @@ function Dashboard({ data, alerts = [] }) {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="card" style={{ width: '80%', height: '80%', background: '#fff', padding: '20px', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h3>Detalle Completo de Procedimientos ({filteredHistory.length} registros)</h3>
+              <h3>Detalle Completo de {detailLabel} ({detailCount} registros)</h3>
               <button className="btn" onClick={() => setShowDetail(false)}>Cerrar</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -848,50 +912,75 @@ function TransferirPage({ data, updateInventory }) {
   )
 }
 
-function ProcedimientosPage({ data, updateInventory, openModal, isAdmin }) {
+function ProcedimientosPage({ data, updateInventory, openModal, canManageKits }) {
+  const [searchTerm, setSearchTerm] = useState('')
   const deleteProc = (id) => { if (window.confirm('¿Eliminar kit?')) updateInventory({ ...data, procedures: data.procedures.filter(p => p.id !== id) }) }
+  const filteredProcedures = (data?.procedures || []).filter(proc => proc.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
   return (
     <div className="page-content">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h3 style={{ margin: 0 }}>Catálogo de Procedimientos (Kits)</h3>
-        {isAdmin && <button className="btn btn-primary" onClick={openModal}>+ Crear Kit</button>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ minWidth: '240px' }}>
+          <h3 style={{ margin: 0 }}>Catálogo de Procedimientos (Kits)</h3>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input type="text" placeholder="Buscar kit..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', minWidth: '240px' }} />
+          {canManageKits && <button className="btn btn-primary" onClick={openModal}>+ Crear Kit</button>}
+        </div>
       </div>
       <div className="grid-2">
-        {data?.procedures?.map(proc => (
+        {filteredProcedures.length > 0 ? filteredProcedures.map(proc => (
           <div key={proc.id} className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><h4 style={{ margin: 0, color: 'var(--primary)' }}>{proc.nombre}</h4>{isAdmin && <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => deleteProc(proc.id)}>X</button>}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><h4 style={{ margin: 0, color: 'var(--primary)' }}>{proc.nombre}</h4>{canManageKits && <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => deleteProc(proc.id)}>X</button>}</div>
             <ul style={{ fontSize: '12px', paddingLeft: '20px', marginTop: '10px' }}>
               {proc.extra?.map((ins, idx) => <li key={idx}>{ins.pname}: <strong>x{ins.qty}</strong></li>)}
             </ul>
           </div>
-        ))}
+        )) : <div style={{ width: '100%', padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>No se encontraron kits con ese nombre.</div>}
       </div>
     </div>
   )
 }
 
-function RegistrarPage({ data, updateInventory, currentUser }) {
+function RegistrarPage({ data, updateInventory, currentUser, canUseKits }) {
   const boxes = data?.boxes || []
   const [selectedBox, setSelectedBox] = useState(boxes[0]?.id || '')
   const [selectedProcs, setSelectedProcs] = useState([])
   const [patient, setPatient] = useState('')
   const [extraItems, setExtraItems] = useState([])
+  const [procSearch, setProcSearch] = useState('')
 
   useEffect(() => {
     if (boxes.length > 0 && !boxes.find(b => b.id === selectedBox)) setSelectedBox(boxes[0].id)
   }, [boxes, selectedBox])
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!selectedBox) return alert('No hay boxes creados para registrar la atención')
     if (selectedProcs.length === 0 && extraItems.length === 0) return alert('Selecciona al menos un kit o un insumo adicional')
       
     const newData = JSON.parse(JSON.stringify(data)); let logIns = [] 
-    
+    const today = new Date()
+    const isoDate = today.toISOString().split('T')[0]
+    const year = today.getFullYear()
+    const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+    const month = monthNames[today.getMonth()] || 'Enero'
+    const csvEntries = []
+
     selectedProcs.forEach(procId => {
-      newData.procedures?.find(p => p.id === procId)?.extra?.forEach(item => {
+      const proc = newData.procedures?.find(p => p.id === procId)
+      proc?.extra?.forEach(item => {
         const product = newData.products?.find(p => p.nombre === item.pname)
         if (product) { if (!product.stocks) product.stocks = {}; product.stocks[selectedBox] = Math.max(0, (product.stocks[selectedBox] ?? 0) - item.qty); logIns.push(`${item.pname} (-${item.qty})`) }
       })
+      if (proc) {
+        csvEntries.push({
+          date: isoDate,
+          year,
+          month,
+          code: proc.code || '9999',
+          description: proc.nombre,
+          quantity: 1
+        })
+      }
     })
 
     extraItems.forEach(item => {
@@ -900,14 +989,46 @@ function RegistrarPage({ data, updateInventory, currentUser }) {
         if (product) { if (!product.stocks) product.stocks = {}; product.stocks[selectedBox] = Math.max(0, (product.stocks[selectedBox] ?? 0) - item.qty); logIns.push(`${item.pname} (-${item.qty}) [Extra]`) }
       }
     })
-    
+
+    if (selectedProcs.length === 0 && extraItems.length > 0) {
+      const totalExtra = extraItems.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
+      csvEntries.push({ date: isoDate, year, month, code: '9999', description: 'Solo Insumos', quantity: totalExtra || 1 })
+    }
+
     if (!newData.attendHistory) newData.attendHistory = []
     const procNames = selectedProcs.map(id => newData.procedures?.find(p => p.id === id)?.nombre)
     if (extraItems.length > 0) procNames.push('Insumos Adicionales')
 
-    newData.attendHistory.unshift({ fecha: new Date().toISOString().split('T')[0], box: boxes.find(b => b.id === selectedBox)?.name || selectedBox, pac: patient || 'Paciente', procs: procNames.join(' + ') || 'Solo Insumos', ins: logIns.join(', '), user: currentUser?.name || 'Sistema' })
-    
-    updateInventory(newData); alert('✓ Atención registrada y stock descontado exitosamente'); setSelectedProcs([]); setExtraItems([]); setPatient('');
+    newData.attendHistory.unshift({ fecha: isoDate, box: boxes.find(b => b.id === selectedBox)?.name || selectedBox, pac: patient || 'Paciente', procs: procNames.join(' + ') || 'Solo Insumos', ins: logIns.join(', '), user: currentUser?.name || 'Sistema' })
+
+    if (csvEntries.length > 0) {
+      if (!newData.productionData) newData.productionData = []
+      csvEntries.forEach(entry => {
+        newData.productionData.push({
+          year: entry.year,
+          month: entry.month,
+          monthKey: String(today.getMonth() + 1).padStart(2, '0'),
+          code: entry.code,
+          description: entry.description,
+          quantity: entry.quantity,
+          date: entry.date
+        })
+      })
+
+      try {
+        await fetch('/api/append-production', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entries: csvEntries })
+        })
+      } catch (err) {
+        console.warn('No se pudo guardar en el CSV:', err)
+      }
+    }
+
+    updateInventory(newData)
+    alert('✓ Atención registrada y stock descontado exitosamente')
+    setSelectedProcs([]); setExtraItems([]); setPatient('')
   }
 
   return (
@@ -915,7 +1036,17 @@ function RegistrarPage({ data, updateInventory, currentUser }) {
       <div className="card">
         <h3>Nueva atención</h3>
         <div className="form-grid"><div className="form-group"><label>Box de Atención</label><select value={selectedBox} onChange={e => setSelectedBox(e.target.value)}>{boxes.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div><div className="form-group"><label>Paciente</label><input type="text" value={patient} onChange={e => setPatient(e.target.value)} placeholder="Nombre (opcional)" /></div></div>
-        <div className="form-group" style={{ marginTop: '20px' }}><label>Kits Consumidos</label><div className="proc-checks">{data?.procedures?.map(p => (<label key={p.id} className="check-item"><input type="checkbox" checked={selectedProcs.includes(p.id)} onChange={e => setSelectedProcs(e.target.checked ? [...selectedProcs, p.id] : selectedProcs.filter(id => id !== p.id))} /> {p.nombre}</label>))}</div></div>
+        <div className="form-group" style={{ marginTop: '20px' }}>
+          <label>Kits Consumidos</label>
+          <input type="text" placeholder="Buscar kit para registrar..." value={procSearch} onChange={e => setProcSearch(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '12px' }} />
+          <div className="proc-checks">
+            {(data?.procedures || []).filter(p => p.nombre.toLowerCase().includes(procSearch.toLowerCase())).map(p => (
+              <label key={p.id} className="check-item"><input type="checkbox" disabled={!canUseKits} checked={selectedProcs.includes(p.id)} onChange={e => setSelectedProcs(e.target.checked ? [...selectedProcs, p.id] : selectedProcs.filter(id => id !== p.id))} /> {p.nombre}</label>
+            ))}
+            {((data?.procedures || []).filter(p => p.nombre.toLowerCase().includes(procSearch.toLowerCase())).length === 0) && <div style={{ color: 'var(--text-secondary)', padding: '10px 0' }}>No se encontró ningún kit.</div>}
+          </div>
+          {!canUseKits && <div style={{ color: 'var(--text-secondary)', marginTop: '10px', fontSize: '13px' }}><strong>Nota:</strong> Tu rol puede ver los kits, pero no puede seleccionarlos para registrar atenciones.</div>}
+        </div>
         <div className="form-group" style={{ marginTop: '20px', background: 'var(--bg-secondary)', padding: '15px', borderRadius: '8px', border: '1px solid var(--border)' }}>
           <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>Insumos Adicionales (Opcional)</label>
           {extraItems.map((ins, idx) => (

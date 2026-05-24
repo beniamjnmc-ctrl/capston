@@ -68,6 +68,11 @@ export default function Home() {
           <div className={styles.heroBadge}>
             <span>★</span> Control Total — Clínica Auil
           </div>
+          <div className={styles.heroLogos}>
+            <div className={styles.heroLogoItem}>
+              <img src="/Logo OdoTool.png" alt="Logo OdonTool" />
+            </div>
+          </div>
           <h1 className={styles.heroTitle} style={{ fontSize: '72px', lineHeight: '1', marginBottom: '30px' }}>
             OdonTool:<br />
             <em>inventario</em><br />

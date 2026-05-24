@@ -201,6 +201,30 @@
   font-size: 14px;
 }
 
+.heroLogos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.heroLogoItem {
+  min-width: 160px;
+  max-width: 280px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(15, 110, 86, 0.12);
+  padding: 12px;
+}
+
+.heroLogoItem img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .heroTitle {
   font-size: 48px;
   font-weight: 700;

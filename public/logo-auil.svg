@@ -1,0 +1,14 @@
+<svg width="360" height="140" viewBox="0 0 360 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#07A9A9" />
+      <stop offset="100%" stop-color="#0A6F72" />
+    </linearGradient>
+  </defs>
+  <rect width="360" height="140" rx="24" fill="#FFFFFF" />
+  <rect x="12" y="14" width="112" height="112" rx="18" fill="url(#g1)" />
+  <path d="M68 92C82.0914 92 94 80.0914 94 66C94 57.1634 89.857 49.1802 82.9663 44.5182C77.7894 40.9486 70.5107 39 64 39C57.4893 39 50.2106 40.9486 45.0337 44.5182C38.143 49.1802 34 57.1634 34 66C34 80.0914 45.9086 92 60 92H68Z" fill="#FFFFFF" />
+  <path d="M30 80C30 80 42 52 64 52C86 52 98 80 98 80" fill="#FFFFFF" />
+  <text x="140" y="58" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="700" fill="#222222">Auil</text>
+  <text x="140" y="98" font-family="Helvetica, Arial, sans-serif" font-size="18" fill="#555555">Odontología</text>
+</svg>
