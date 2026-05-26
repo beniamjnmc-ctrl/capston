@@ -16,6 +16,9 @@ export default function Login() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
+  const [verificationStep, setVerificationStep] = useState(false)
+  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', ''])
+  const [currentUser, setCurrentUser] = useState(null)
 
   useEffect(() => {
     if (router.query.tab === 'register') setTab('register')
@@ -45,6 +48,40 @@ export default function Login() {
     else if (!loginForm.email.toLowerCase().endsWith('@auil.cl')) e.email = 'Acceso restringido: Solo correos @auil.cl'
     if (!loginForm.password) e.password = 'La contraseña es requerida'
     return e
+  }
+
+  const validateVerification = () => {
+    const e = {}
+    const code = verificationCode.join('')
+    if (code.length < 6) e.verification = 'El código debe tener 6 dígitos'
+    else if (parseInt(code) % 7 !== 0) e.verification = 'Código de verificación incorrecto'
+    return e
+  }
+
+  const handleVerification = async (e) => {
+    e.preventDefault()
+    const errs = validateVerification()
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    
+    setLoading(true)
+    setErrors({})
+    await new Promise(r => setTimeout(r, 1200))
+
+    // Verificación exitosa - completar login
+    localStorage.setItem('dentastock-user', JSON.stringify(currentUser));
+    if (login) login(currentUser); 
+
+    setLoading(false)
+    setSuccess(`¡Bienvenido ${currentUser.name}! Accediendo como ${currentUser.role.toUpperCase()}...`)
+    setTimeout(() => router.push('/inventory'), 2000)
+  }
+
+  const cancelVerification = () => {
+    setVerificationStep(false)
+    setVerificationCode(['', '', '', '', '', ''])
+    setCurrentUser(null)
+    setErrors({})
+    setSuccess('')
   }
 
   const validateRegister = () => {
@@ -79,15 +116,13 @@ export default function Login() {
       return
     }
 
-    // 1. Guardamos la "sesión" activa en el navegador - usar la misma clave que _app.js espera
-    localStorage.setItem('dentastock-user', JSON.stringify(foundUser));
-    
-    // 2. Avisamos al contexto general de tu app (si lo tienes configurado)
-    if (login) login(foundUser); 
-
+    // Credenciales correctas - guardar el usuario y mostrar paso de verificación
+    setCurrentUser(foundUser)
+    setVerificationStep(true)
+    setVerificationCode(['', '', '', '', '', ''])
+    setErrors({})
+    setSuccess('')
     setLoading(false)
-    setSuccess(`¡Bienvenido ${foundUser.name}! Accediendo como ${foundUser.role.toUpperCase()}...`)
-    setTimeout(() => router.push('/inventory'), 2000)
   }
 
   const handleRegister = async (e) => {
@@ -134,6 +169,9 @@ export default function Login() {
     setTab(t)
     setErrors({})
     setSuccess('')
+    setVerificationStep(false)
+    setVerificationCode('')
+    setCurrentUser(null)
   }
 
   return (
@@ -194,7 +232,7 @@ export default function Login() {
               </div>
             )}
 
-            {tab === 'login' && (
+            {tab === 'login' && !verificationStep && (
               <form onSubmit={handleLogin} className={styles.form} noValidate>
                 <div className={styles.formHeader}>
                   <h1 className={styles.formTitle}>Bienvenido a OdonTool</h1>
@@ -244,6 +282,63 @@ export default function Login() {
                     Regístrate aquí
                   </button>
                 </p>
+              </form>
+            )}
+
+            {tab === 'login' && verificationStep && (
+              <form onSubmit={handleVerification} className={styles.form} noValidate>
+                <div className={styles.formHeader}>
+                  <h1 className={styles.formTitle}>Verificación de seguridad</h1>
+                  <p className={styles.formSub}>Ingresa el código de verificación</p>
+                </div>
+
+                <div className={styles.verificationInfo}>
+                  <p>Se ha verificado tu identidad. Ahora ingresa el código de verificación de 6 dígitos.</p>
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>Código de verificación</label>
+                  <div className={styles.codeInputContainer}>
+                    {verificationCode.map((digit, index) => (
+                      <input
+                        key={index}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength="1"
+                        className={`${styles.codeInput} ${errors.verification ? styles.codeInputError : ''}`}
+                        placeholder="•"
+                        value={digit}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          if (value.length <= 1) {
+                            const newCode = [...verificationCode];
+                            newCode[index] = value;
+                            setVerificationCode(newCode);
+                            // Auto-focus al siguiente input
+                            if (value && index < 5) {
+                              document.querySelector(`[data-code-index="${index + 1}"]`)?.focus();
+                            }
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Backspace' && !digit && index > 0) {
+                            document.querySelector(`[data-code-index="${index - 1}"]`)?.focus();
+                          }
+                        }}
+                        data-code-index={index}
+                      />
+                    ))}
+                  </div>
+                  {errors.verification && <span className={styles.error}>{errors.verification}</span>}
+                </div>
+
+                <button type="submit" className={styles.btnSubmit} disabled={loading}>
+                  {loading ? <span className={styles.spinner}></span> : 'Verificar'}
+                </button>
+
+                <button type="button" className={styles.btnCancel} onClick={cancelVerification} disabled={loading}>
+                  Volver atrás
+                </button>
               </form>
             )}
 
