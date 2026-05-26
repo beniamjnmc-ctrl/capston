@@ -79,8 +79,8 @@ export default function Login() {
       return
     }
 
-    // 1. Guardamos la "sesión" activa en el navegador
-    localStorage.setItem('odontool_session', JSON.stringify(foundUser));
+    // 1. Guardamos la "sesión" activa en el navegador - usar la misma clave que _app.js espera
+    localStorage.setItem('dentastock-user', JSON.stringify(foundUser));
     
     // 2. Avisamos al contexto general de tu app (si lo tienes configurado)
     if (login) login(foundUser); 
@@ -121,8 +121,8 @@ export default function Login() {
     users.push(newUser);
     localStorage.setItem('odontool_users', JSON.stringify(users));
 
-    // Iniciar sesión automáticamente
-    localStorage.setItem('odontool_session', JSON.stringify(newUser));
+    // Iniciar sesión automáticamente - usar la misma clave que _app.js espera
+    localStorage.setItem('dentastock-user', JSON.stringify(newUser));
     if (register) register(newUser);
 
     setLoading(false)

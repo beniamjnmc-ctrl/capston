@@ -551,7 +551,10 @@ function ComprasPage({ data, openCreate, openReceive }) {
                 <td><span className={`badge ${po.status === 'Pendiente' ? 'warning' : 'good'}`}>{po.status}</span></td>
                 <td>
                   {po.status === 'Pendiente' ? (
-                    <button className="btn btn-success" style={{ padding: '4px 8px', fontSize: '12px' }} onClick={(e) => { e.stopPropagation(); openReceive(po); }}>Recibir Insumos</button>
+                    <>
+                      <button className="btn btn-success" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '5px' }} onClick={(e) => { e.stopPropagation(); openReceive(po); }}>Recibir Insumos</button>
+                      <button className="btn btn-primary" style={{ padding: '4px 8px', fontSize: '12px' }} onClick={(e) => { e.stopPropagation(); window.open('/orden_compra_resina.pdf', '_blank'); }}>Orden</button>
+                    </>
                   ) : (
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Completada el {po.receivedAt}</span>
                   )}
