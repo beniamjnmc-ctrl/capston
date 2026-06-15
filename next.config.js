@@ -7,10 +7,6 @@ const nextConfig = {
   compress: true,
   // Configuración para Vercel
   output: 'standalone',
-  // Configuración de Turbopack
-  turbopack: {
-    root: path.resolve(__dirname)
-  },
   // Headers de seguridad
   async headers() {
     return [

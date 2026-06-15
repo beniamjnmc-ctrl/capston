@@ -2,7 +2,7 @@
 // Este archivo muestra cómo actualizar _app.js para usar Supabase
 
 import { useEffect, useState } from 'react'
-import { createClient as createSupabaseClient } from '@/utils/supabase/client'
+import { createClient as createSupabaseClient } from './client'
 
 export default function useSupabaseAuth() {
   const [supabase] = useState(() => createSupabaseClient())

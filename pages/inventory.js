@@ -8,7 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 export default function Inventory() {
   const router = useRouter()
-  const { inventoryData, updateInventory, activeClinic, switchClinic, syncData, syncStatus, logout, loading, user, usersDb, registerNewUser, deleteUser, updatePassword } = useApp()
+  const { inventoryData, updateInventory, activeClinic, switchClinic, syncData, syncStatus, logout, loading, user } = useApp()
   
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [activeBox, setActiveBox] = useState('BODEGA')
@@ -73,6 +73,11 @@ export default function Inventory() {
   const canViewKits = isAdmin || isClinico || isAsistente;
   const canUseKits = isAdmin || isClinico;
   const canManageKits = isAdmin;
+
+  // Validar que tenemos datos antes de renderizar
+  if (!user || !inventoryData) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px' }}>Cargando...</div>
+  }
 
   return (
     <>
@@ -171,7 +176,7 @@ export default function Inventory() {
             {currentPage === 'procedimientos' && canViewKits && <ProcedimientosPage data={inventoryData} updateInventory={updateInventory} openModal={() => setShowProcModal(true)} canManageKits={canManageKits} />}
             {currentPage === 'registrar' && <RegistrarPage data={inventoryData} updateInventory={updateInventory} currentUser={user} canUseKits={canUseKits} />}
             {currentPage === 'historial' && <HistorialPage data={inventoryData} />}
-            {currentPage === 'usuarios' && isAdmin && <UsuariosPage usersDb={usersDb} registerNewUser={registerNewUser} deleteUser={deleteUser} currentUser={user} />}
+            {/* {currentPage === 'usuarios' && isAdmin && <UsuariosPage usersDb={usersDb} registerNewUser={registerNewUser} deleteUser={deleteUser} currentUser={user} />} */}
           </div>
         </main>
       </div>
@@ -180,7 +185,7 @@ export default function Inventory() {
       {showProcModal && <ProcedureModal data={inventoryData} update={updateInventory} onClose={() => setShowProcModal(false)} />}
       {showCreatePOModal && <CreatePOModal data={inventoryData} update={updateInventory} onClose={() => setShowCreatePOModal(false)} currentUser={user} />}
       {showReceivePOModal && <ReceivePOModal data={inventoryData} update={updateInventory} po={selectedPO} onClose={() => { setShowReceivePOModal(false); setSelectedPO(null); }} />}
-      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} updatePassword={updatePassword} logout={logout} />}
+      {showProfileModal && <ProfileModal user={user} onClose={() => setShowProfileModal(false)} logout={logout} />}
     </>
   )
 }
@@ -750,124 +755,41 @@ function PODetailModal({ po, data, onClose }) {
 }
 
 // ============================================================================
-// NUEVO MODAL: MI PERFIL (CONTRASEÑAS)
+// MODAL: MI PERFIL
 // ============================================================================
-function ProfileModal({ user, onClose, updatePassword, logout }) {
-  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
-  const [msg, setMsg] = useState(null);
+function ProfileModal({ user, onClose, logout }) {
+  const [msg, setMsg] = useState(null)
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (passwords.new !== passwords.confirm) {
-      return setMsg({ type: 'error', text: 'Las contraseñas nuevas no coinciden.' });
-    }
-    
-    const res = updatePassword(user.email, passwords.current, passwords.new);
-    if (res.error) {
-      setMsg({ type: 'error', text: res.error });
-    } else {
-      setMsg({ type: 'success', text: 'Contraseña actualizada con éxito. Cierra sesión y vuelve a entrar con tu nueva clave.' });
-      setPasswords({ current: '', new: '', confirm: '' });
-    }
-  }
-
-  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 };
-  const cardStyle = { background: '#fff', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' };
+  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }
+  const cardStyle = { background: '#fff', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }
 
   return (
     <div style={modalStyle}>
       <div style={cardStyle}>
         <h2 style={{ marginTop: 0, marginBottom: '5px', color: '#333' }}>Mi Perfil</h2>
         <p style={{ color: '#666', marginBottom: '25px', fontSize: '14px' }}>
-          <strong>Nombre:</strong> {user.name} <br/>
-          <strong>Correo:</strong> {user.email}
+          <strong>Nombre:</strong> {user?.name} <br/>
+          <strong>Correo:</strong> {user?.email} <br/>
+          <strong>Rol:</strong> {user?.role}
         </p>
         
-        <h4 style={{ marginBottom: '15px', color: '#444' }}>Cambiar Contraseña</h4>
-        {msg && (
-          <div style={{ padding: '12px', marginBottom: '15px', borderRadius: '6px', fontSize: '14px', background: msg.type === 'error' ? '#f8d7da' : '#d4edda', color: msg.type === 'error' ? '#721c24' : '#155724' }}>
-            {msg.text}
-          </div>
-        )}
-        
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 'bold' }}>Contraseña Actual</label>
-            <input type="password" required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} value={passwords.current} onChange={e => setPasswords({...passwords, current: e.target.value})} />
-          </div>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 'bold' }}>Nueva Contraseña</label>
-            <input type="password" required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} />
-          </div>
-          <div style={{ marginBottom: '25px' }}>
-            <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 'bold' }}>Confirmar Nueva Contraseña</label>
-            <input type="password" required style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} />
-          </div>
-          <button type="submit" style={{ width: '100%', padding: '12px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Actualizar Contraseña</button>
-        </form>
-
         <div style={{ borderTop: '1px solid #eee', marginTop: '20px', paddingTop: '20px', display: 'flex', gap: '10px' }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '12px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cerrar Ventana</button>
+          <button onClick={onClose} style={{ flex: 1, padding: '12px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cerrar</button>
+          <button onClick={logout} style={{ flex: 1, padding: '12px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cerrar Sesión</button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function UsuariosPage({ usersDb, registerNewUser, deleteUser, currentUser }) {
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', role: 'clinico', password: '' });
-
-  const handleRegister = (e) => {
-    e.preventDefault();
-    const res = registerNewUser(form.name, form.email, form.role, form.password);
-    if (res.error) return alert(res.error);
-    alert('Usuario registrado exitosamente');
-    setShowModal(false); setForm({ name: '', email: '', role: 'clinico', password: '' });
-  }
-
-  return (
-    <div className="page-content">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h3 style={{ margin: 0 }}>Personal Autorizado</h3>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Registrar Usuario</button>
-      </div>
-      <div className="card">
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead><tr style={{ borderBottom: '2px solid #eee' }}><th style={{ padding: '10px' }}>Nombre</th><th>Correo Institucional</th><th>Rol / Permisos</th><th>Acción</th></tr></thead>
-          <tbody>
-            {usersDb && usersDb.map(u => (
-              <tr key={u.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '10px' }}><strong>{u.name}</strong> {u.id === currentUser?.id && <span style={{fontSize:'10px', color:'var(--primary)'}}>(Tú)</span>}</td>
-                <td>{u.email}</td>
-                <td><span className={`badge ${u.role === 'admin' ? 'warning' : 'good'}`}>{u.role === 'admin' ? 'Administrador' : 'Clínico'}</span></td>
-                <td>
-                  <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '12px' }} onClick={() => { if(confirm('¿Eliminar acceso a este usuario?')) { const res = deleteUser(u.id); if(res.error) alert(res.error); }}}>Bloquear Acceso</button>
-                </td>
-              </tr>
-            ))}
-            {(!usersDb || usersDb.length === 0) && <tr><td colSpan="4" className="empty">No hay usuarios en la base.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-
-      {showModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ width: '400px' }}>
-            <h3>Registrar Personal</h3>
-            <form onSubmit={handleRegister}>
-              <div className="form-group"><label>Nombre Completo</label><input type="text" required value={form.name} onChange={e=>setForm({...form, name: e.target.value})} /></div>
-              <div className="form-group"><label>Correo (@auil.cl)</label><input type="email" required value={form.email} onChange={e=>setForm({...form, email: e.target.value})} placeholder="ejemplo@auil.cl" /></div>
-              <div className="form-group"><label>Contraseña Temporal</label><input type="text" required value={form.password} onChange={e=>setForm({...form, password: e.target.value})} /></div>
-              <div className="form-group"><label>Nivel de Acceso</label><select value={form.role} onChange={e=>setForm({...form, role: e.target.value})}><option value="clinico">Personal Clínico (Solo registros)</option><option value="admin">Administrador (Control total)</option></select></div>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}><button type="submit" className="btn btn-primary" style={{flex: 1}}>Crear Cuenta</button><button type="button" className="btn" style={{flex: 1}} onClick={() => setShowModal(false)}>Cancelar</button></div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
+
+/*
+// ============================================================================
+// USUARIOS PAGE - DEPRECATED
+// ============================================================================
+// Este componente debe ser reimplementado usando las APIs de Supabase
+// Ver: pages/api/users/index.js para la gestión de usuarios
+// Por ahora está comentado ya que depende de funciones removidas
+*/
 
 function AlertasPage({ alerts = [] }) {
   const vencimientos = alerts?.filter(a => a.type === 'vencimiento') || []

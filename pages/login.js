@@ -2,13 +2,13 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
-import { useApp } from './_app'
+import { createClient } from '../utils/supabase/client'
 import styles from '../styles/Login.module.css'
 
 export default function Login() {
   const router = useRouter()
-  // Asumimos que login y register vienen del contexto, pero manejaremos la sesión localmente aquí también
-  const { login, register } = useApp() 
+  const [supabase] = useState(() => createClient())
+  
   const [tab, setTab] = useState('login')
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' })
@@ -16,80 +16,55 @@ export default function Login() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
-  const [verificationStep, setVerificationStep] = useState(false)
-  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', ''])
-  const [currentUser, setCurrentUser] = useState(null)
-
+  
+  // Verificar si ya hay sesión activa (redirigir si está autenticado)
   useEffect(() => {
-    if (router.query.tab === 'register') setTab('register')
-  }, [router.query])
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          // Ya está autenticado, redirigir a inventory
+          router.push('/inventory')
+        }
+      } catch (error) {
+        console.error('Error checking session:', error)
+      }
+    }
 
-  // --- BASE DE DATOS SIMULADA (MOCK DB) ---
-  // Esta función crea o lee los usuarios guardados en el navegador
-  const getMockUsers = () => {
-    if (typeof window === 'undefined') return [];
-    const stored = localStorage.getItem('odontool_users');
-    if (stored) return JSON.parse(stored);
+    // Solo ejecutar si no estamos en el servidor
+    if (typeof window !== 'undefined') {
+      checkSession()
+    }
+  }, [supabase, router])
 
-    // Usuarios por defecto (¡Usa estos para probar!)
-    const defaultUsers = [
-      { name: 'Administrador Auil', email: 'admin@auil.cl', phone: '+56900000000', password: 'admin', role: 'admin' },
-      { name: 'Dr. Roberto Auil', email: 'doctor@auil.cl', phone: '+56911111111', password: 'doctor', role: 'clinico' },
-      { name: 'Asistente Dental', email: 'asistente@auil.cl', phone: '+56922222222', password: 'asistente', role: 'asistente' }
-    ];
-    localStorage.setItem('odontool_users', JSON.stringify(defaultUsers));
-    return defaultUsers;
-  };
+  // Escuchar cambios de autenticación para redirigir automáticamente
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user && router.pathname === '/login') {
+          // Usuario autenticado mientras está en la página de login
+          router.push('/inventory')
+        }
+      }
+    )
+    return () => subscription?.unsubscribe()
+  }, [supabase, router])
+
 
   const validateLogin = () => {
     const e = {}
     if (!loginForm.email) e.email = 'El correo es requerido'
     else if (!/\S+@\S+\.\S+/.test(loginForm.email)) e.email = 'Correo inválido'
-    else if (!loginForm.email.toLowerCase().endsWith('@auil.cl')) e.email = 'Acceso restringido: Solo correos @auil.cl'
     if (!loginForm.password) e.password = 'La contraseña es requerida'
     return e
   }
 
-  const validateVerification = () => {
-    const e = {}
-    const code = verificationCode.join('')
-    if (code.length < 6) e.verification = 'El código debe tener 6 dígitos'
-    else if (parseInt(code) % 7 !== 0) e.verification = 'Código de verificación incorrecto'
-    return e
-  }
-
-  const handleVerification = async (e) => {
-    e.preventDefault()
-    const errs = validateVerification()
-    if (Object.keys(errs).length) { setErrors(errs); return }
-    
-    setLoading(true)
-    setErrors({})
-    await new Promise(r => setTimeout(r, 1200))
-
-    // Verificación exitosa - completar login
-    localStorage.setItem('dentastock-user', JSON.stringify(currentUser));
-    if (login) login(currentUser); 
-
-    setLoading(false)
-    setSuccess(`¡Bienvenido ${currentUser.name}! Accediendo como ${currentUser.role.toUpperCase()}...`)
-    setTimeout(() => router.push('/inventory'), 2000)
-  }
-
-  const cancelVerification = () => {
-    setVerificationStep(false)
-    setVerificationCode(['', '', '', '', '', ''])
-    setCurrentUser(null)
-    setErrors({})
-    setSuccess('')
-  }
 
   const validateRegister = () => {
     const e = {}
     if (!registerForm.name) e.name = 'El nombre es requerido'
     if (!registerForm.email) e.email = 'El correo es requerido'
     else if (!/\S+@\S+\.\S+/.test(registerForm.email)) e.email = 'Correo inválido'
-    else if (!registerForm.email.toLowerCase().endsWith('@auil.cl')) e.email = 'Registro restringido: Solo correos @auil.cl'
     if (!registerForm.phone) e.phone = 'El teléfono es requerido'
     if (!registerForm.password) e.password = 'La contraseña es requerida'
     else if (registerForm.password.length < 8) e.password = 'Mínimo 8 caracteres'
@@ -104,25 +79,34 @@ export default function Login() {
     
     setLoading(true)
     setErrors({})
-    await new Promise(r => setTimeout(r, 1200)) // Simula la carga de red
 
-    // --- NUEVA LÓGICA DE VALIDACIÓN ---
-    const users = getMockUsers();
-    const foundUser = users.find(u => u.email === loginForm.email && u.password === loginForm.password);
+    try {
+      // Autenticar con Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginForm.email,
+        password: loginForm.password,
+      })
 
-    if (!foundUser) {
+      if (error) {
+        setLoading(false)
+        setErrors({ email: error.message || 'Credenciales incorrectas.' })
+        console.error('Login error:', error)
+        return
+      }
+
+      // Login exitoso - mostrar mensaje y redirigir
+      setSuccess('¡Bienvenido! Accediendo al sistema...')
+      
+      // Redirigir a inventory después de un breve delay
+      setTimeout(() => {
+        router.push('/inventory')
+      }, 500)
+
+    } catch (error) {
       setLoading(false)
-      setErrors({ email: 'Credenciales incorrectas o usuario no registrado.' })
-      return
+      setErrors({ email: 'Error en el servidor. Intenta de nuevo.' })
+      console.error('Login error:', error)
     }
-
-    // Credenciales correctas - guardar el usuario y mostrar paso de verificación
-    setCurrentUser(foundUser)
-    setVerificationStep(true)
-    setVerificationCode(['', '', '', '', '', ''])
-    setErrors({})
-    setSuccess('')
-    setLoading(false)
   }
 
   const handleRegister = async (e) => {
@@ -132,46 +116,50 @@ export default function Login() {
     
     setLoading(true)
     setErrors({})
-    
-    // Validar si el correo ya existe
-    const users = getMockUsers();
-    if (users.find(u => u.email === registerForm.email)) {
-      setLoading(false);
-      setErrors({ email: 'Este correo ya se encuentra registrado.' });
-      return;
+
+    try {
+      // Crear usuario en Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: registerForm.email,
+        password: registerForm.password,
+        options: {
+          data: {
+            name: registerForm.name,
+            phone: registerForm.phone,
+          },
+        },
+      })
+
+      if (error) {
+        setLoading(false)
+        setErrors({ email: error.message || 'Error al registrar la cuenta.' })
+        return
+      }
+
+      // Registro exitoso
+      setLoading(false)
+      setSuccess('¡Cuenta creada con éxito! Por favor, verifica tu correo para confirmar tu cuenta.')
+      
+      // Limpiar formulario
+      setRegisterForm({ name: '', email: '', phone: '', password: '', confirm: '' })
+      
+      // Redirigir al login después de 3 segundos
+      setTimeout(() => {
+        setTab('login')
+        setSuccess('')
+      }, 3000)
+
+    } catch (error) {
+      setLoading(false)
+      setErrors({ email: 'Error en el servidor. Intenta de nuevo.' })
+      console.error('Register error:', error)
     }
-
-    await new Promise(r => setTimeout(r, 1500))
-
-    // Crear el nuevo usuario (Por defecto entra como 'clinico')
-    const newUser = {
-      name: registerForm.name,
-      email: registerForm.email,
-      phone: registerForm.phone,
-      password: registerForm.password,
-      role: 'clinico' 
-    };
-
-    // Guardar en nuestra base de datos simulada
-    users.push(newUser);
-    localStorage.setItem('odontool_users', JSON.stringify(users));
-
-    // Iniciar sesión automáticamente - usar la misma clave que _app.js espera
-    localStorage.setItem('dentastock-user', JSON.stringify(newUser));
-    if (register) register(newUser);
-
-    setLoading(false)
-    setSuccess('¡Cuenta creada con éxito! Redirigiendo al inventario...')
-    setTimeout(() => router.push('/inventory'), 2500)
   }
 
   const switchTab = (t) => {
     setTab(t)
     setErrors({})
     setSuccess('')
-    setVerificationStep(false)
-    setVerificationCode('')
-    setCurrentUser(null)
   }
 
   return (
@@ -232,7 +220,7 @@ export default function Login() {
               </div>
             )}
 
-            {tab === 'login' && !verificationStep && (
+            {tab === 'login' && (
               <form onSubmit={handleLogin} className={styles.form} noValidate>
                 <div className={styles.formHeader}>
                   <h1 className={styles.formTitle}>Bienvenido a OdonTool</h1>
@@ -282,63 +270,6 @@ export default function Login() {
                     Regístrate aquí
                   </button>
                 </p>
-              </form>
-            )}
-
-            {tab === 'login' && verificationStep && (
-              <form onSubmit={handleVerification} className={styles.form} noValidate>
-                <div className={styles.formHeader}>
-                  <h1 className={styles.formTitle}>Verificación de seguridad</h1>
-                  <p className={styles.formSub}>Ingresa el código de verificación</p>
-                </div>
-
-                <div className={styles.verificationInfo}>
-                  <p>Se ha verificado tu identidad. Ahora ingresa el código de verificación de 6 dígitos.</p>
-                </div>
-
-                <div className={styles.field}>
-                  <label className={styles.label}>Código de verificación</label>
-                  <div className={styles.codeInputContainer}>
-                    {verificationCode.map((digit, index) => (
-                      <input
-                        key={index}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength="1"
-                        className={`${styles.codeInput} ${errors.verification ? styles.codeInputError : ''}`}
-                        placeholder="•"
-                        value={digit}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '');
-                          if (value.length <= 1) {
-                            const newCode = [...verificationCode];
-                            newCode[index] = value;
-                            setVerificationCode(newCode);
-                            // Auto-focus al siguiente input
-                            if (value && index < 5) {
-                              document.querySelector(`[data-code-index="${index + 1}"]`)?.focus();
-                            }
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Backspace' && !digit && index > 0) {
-                            document.querySelector(`[data-code-index="${index - 1}"]`)?.focus();
-                          }
-                        }}
-                        data-code-index={index}
-                      />
-                    ))}
-                  </div>
-                  {errors.verification && <span className={styles.error}>{errors.verification}</span>}
-                </div>
-
-                <button type="submit" className={styles.btnSubmit} disabled={loading}>
-                  {loading ? <span className={styles.spinner}></span> : 'Verificar'}
-                </button>
-
-                <button type="button" className={styles.btnCancel} onClick={cancelVerification} disabled={loading}>
-                  Volver atrás
-                </button>
               </form>
             )}
 

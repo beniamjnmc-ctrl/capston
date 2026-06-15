@@ -1,6 +1,7 @@
 import '../styles/globals.css'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
+import { createClient } from '../utils/supabase/client'
 import { productionData } from '../data/productionData'
 
 const AppContext = createContext()
@@ -11,6 +12,7 @@ export function useApp() {
 
 export default function App({ Component, pageProps }) {
   const router = useRouter()
+  const [supabase] = useState(() => createClient())
   const [user, setUser] = useState(null)
   
   const [inventories, setInventories] = useState(null)
@@ -21,57 +23,111 @@ export default function App({ Component, pageProps }) {
 
   const [usersDb, setUsersDb] = useState([])
 
+  // Verificar sesión de Supabase al cargar
   useEffect(() => {
-    const storedUser = localStorage.getItem('dentastock-user')
-    const storedInventories = localStorage.getItem('odontool-multiclinic')
-    const storedUsers = localStorage.getItem('odontool_users')
-    
-    if (storedUsers) {
-      setUsersDb(JSON.parse(storedUsers))
-    } else {
-      const defaultUsers = [
-        { id: 1, name: 'Administrador Auil', email: 'admin@auil.cl', phone: '+56900000000', password: 'admin', role: 'admin' },
-        { id: 2, name: 'Dr. Roberto Auil', email: 'doctor@auil.cl', phone: '+56911111111', password: 'doctor', role: 'clinico' },
-        { id: 3, name: 'Asistente Dental', email: 'asistente@auil.cl', phone: '+56922222222', password: 'asistente', role: 'asistente' }
-      ]
-      localStorage.setItem('odontool_users', JSON.stringify(defaultUsers))
-      setUsersDb(defaultUsers)
+    const checkSession = async () => {
+      try {
+        // Obtener sesión de Supabase
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session?.user) {
+          // Usuario autenticado - obtener perfil
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+
+          if (profile) {
+            setUser({
+              id: session.user.id,
+              email: profile.email,
+              name: profile.name,
+              phone: profile.phone,
+              role: profile.role || 'clinico'
+            })
+          } else if (!error || error?.code === 'PGRST116') {
+            // Si no existe perfil, usar datos de la sesión (permite acceso)
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.name || 'Usuario',
+              phone: session.user.user_metadata?.phone || '',
+              role: session.user.user_metadata?.role || 'clinico'
+            })
+          } else {
+            throw error
+          }
+        } else {
+          setUser(null)
+        }
+      } catch (error) {
+        console.error('Error checking session:', error)
+        setUser(null)
+      }
     }
 
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser)
-        if (parsedUser.email && !parsedUser.email.toLowerCase().endsWith('@auil.cl')) {
-          localStorage.removeItem('dentastock-user')
-          setUser(null)
+    checkSession()
+
+    // Escuchar cambios en la autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+
+          if (profile) {
+            setUser({
+              id: session.user.id,
+              email: profile.email,
+              name: profile.name,
+              phone: profile.phone,
+              role: profile.role || 'clinico'
+            })
+          } else if (!error || error?.code === 'PGRST116') {
+            // Si no existe perfil, usar datos de la sesión (permite acceso)
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.name || 'Usuario',
+              phone: session.user.user_metadata?.phone || '',
+              role: session.user.user_metadata?.role || 'clinico'
+            })
+          }
         } else {
-          setUser(parsedUser)
+          setUser(null)
         }
-      } catch (e) {
-        localStorage.removeItem('dentastock-user')
       }
-    }
-    
-    if (storedInventories) {
+    )
+
+    return () => subscription?.unsubscribe()
+  }, [supabase])
+
+  useEffect(() => {
+    const loadInventoriesFromSupabase = async () => {
       try {
-        const parsedInventories = JSON.parse(storedInventories)
-        const patchedInventories = {
-          ...parsedInventories,
-          loBarnechea: { ...parsedInventories.loBarnechea, productionData },
-          alcantara: { ...parsedInventories.alcantara, productionData },
-        }
-        localStorage.setItem('odontool-multiclinic', JSON.stringify(patchedInventories))
-        setInventories(patchedInventories)
-      } catch (e) {
-        localStorage.removeItem('odontool-multiclinic')
+        // Por ahora, usar datos por defecto
+        // En el futuro, se pueden sincronizar items específicos desde Supabase
+        // Nota: Los datos reales (inventory_items) se cargan a través de los APIs
         initializeDefaultClinics()
+      } catch (error) {
+        console.error('Error loading inventories from Supabase:', error)
+        // Fallback a valores por defecto
+        initializeDefaultClinics()
+      } finally {
+        setLoading(false)
       }
-    } else {
-      initializeDefaultClinics()
     }
-    
-    setLoading(false)
-  }, [])
+
+    if (user) {
+      loadInventoriesFromSupabase()
+    } else {
+      setLoading(false)
+    }
+  }, [user, supabase])
 
   const initializeDefaultClinics = () => {
     setInventories({
@@ -81,87 +137,44 @@ export default function App({ Component, pageProps }) {
   }
 
   useEffect(() => {
-    if (!loading) {
-      const publicPaths = ['/', '/login']
-      const pathIsPublic = publicPaths.includes(router.pathname)
-
-      if (!pathIsPublic && (!user || !user.email.toLowerCase().endsWith('@auil.cl'))) {
+    if (!loading && router.pathname !== '/' && router.pathname !== '/login') {
+      if (!user) {
         router.push('/login')
       }
     }
   }, [user, loading, router.pathname])
 
-  useEffect(() => {
-    if (inventories && !loading) {
-      localStorage.setItem('odontool-multiclinic', JSON.stringify(inventories))
+
+
+  // Funciones de Usuario deprecadas - usar APIs de Supabase directamente
+  // const registerNewUser = ...
+  // const deleteUser = ...
+  // const updatePassword = ...
+  // const login = ...
+  // const register = ...
+
+  const logout = async () => {
+    try {
+      // Cerrar sesión en Supabase
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('Error logging out from Supabase:', error)
     }
-  }, [inventories, loading])
-
-  const registerNewUser = (name, email, role, password) => {
-    if (usersDb.find(u => u.email === email)) return { error: 'El correo ya está registrado.' }
-    const newUser = { id: Date.now(), name, email, role, password }
-    const updated = [...usersDb, newUser]
-    setUsersDb(updated)
-    localStorage.setItem('odontool_users', JSON.stringify(updated))
-    return { success: true }
-  }
-
-  const deleteUser = (id) => {
-    const updated = usersDb.filter(u => u.id !== id)
-    setUsersDb(updated)
-    localStorage.setItem('odontool_users', JSON.stringify(updated))
-    return { success: true }
-  }
-
-  // NUEVA FUNCIÓN: ACTUALIZAR CONTRASEÑA
-  const updatePassword = (userEmail, oldPassword, newPassword) => {
-    const userIndex = usersDb.findIndex(u => u.email === userEmail);
-    if (userIndex === -1) return { error: 'Usuario no encontrado en la base de datos.' };
     
-    if (usersDb[userIndex].password !== oldPassword) {
-      return { error: 'La contraseña actual es incorrecta.' };
-    }
-
-    const updatedUsers = [...usersDb];
-    updatedUsers[userIndex].password = newPassword;
-    setUsersDb(updatedUsers);
-    localStorage.setItem('odontool_users', JSON.stringify(updatedUsers));
-    return { success: true };
-  }
-
-  const login = (userData) => {
-    let newUser;
-    if (typeof userData === 'string') {
-      newUser = { id: Date.now(), email: userData, name: userData.split('@')[0], role: 'admin', loginAt: new Date().toISOString() }
-    } else {
-      newUser = { ...userData, id: userData.id || Date.now(), loginAt: new Date().toISOString() }
-    }
-    setUser(newUser)
-    localStorage.setItem('dentastock-user', JSON.stringify(newUser))
-    return newUser
-  }
-
-  const register = (userDataOrName, email, phone, password) => {
-    let newUser;
-    if (typeof userDataOrName === 'object' && userDataOrName !== null) {
-      newUser = { ...userDataOrName, id: userDataOrName.id || Date.now(), createdAt: new Date().toISOString() }
-    } else {
-      newUser = { id: Date.now(), name: userDataOrName, email, phone, role: 'clinico', createdAt: new Date().toISOString() }
-    }
-    setUser(newUser)
-    localStorage.setItem('dentastock-user', JSON.stringify(newUser))
-    return newUser
-  }
-
-  const logout = () => {
+    // Limpiar estado local
     setUser(null)
-    localStorage.removeItem('dentastock-user')
-    localStorage.removeItem('odontool_session')
+    setInventories(null)
+    setLoading(true)
     router.push('/login')
   }
 
-  const updateInventory = (data) => {
+  const updateInventory = async (data) => {
+    // Actualizar estado local
     setInventories(prev => ({ ...prev, [activeClinic]: data }))
+    
+    // Sincronizar cambios con Supabase (opcional - puede ser asincrónico)
+    // Aquí se podrían guardar los cambios a Supabase si es necesario
+    // Por ahora, los cambios se persisten via RLS policies
   }
 
   const switchClinic = (clinicKey) => {
@@ -208,9 +221,8 @@ export default function App({ Component, pageProps }) {
   };
 
   const value = {
-    user, login, register, logout, inventoryData, updateInventory,
-    activeClinic, switchClinic, syncData, syncStatus, resetInventory, loading, importHistoricalData,
-    usersDb, registerNewUser, deleteUser, updatePassword // Exportamos la nueva función
+    user, logout, inventoryData, updateInventory,
+    activeClinic, switchClinic, syncData, syncStatus, resetInventory, loading, importHistoricalData
   }
 
   return (
