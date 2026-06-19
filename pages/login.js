@@ -94,13 +94,10 @@ export default function Login() {
         return
       }
 
-      // Login exitoso - mostrar mensaje y redirigir
+      // Login exitoso - redirigir inmediatamente sin esperar un timeout
       setSuccess('¡Bienvenido! Accediendo al sistema...')
-      
-      // Redirigir a inventory después de un breve delay
-      setTimeout(() => {
-        router.push('/inventory')
-      }, 500)
+      setLoading(false)
+      await router.replace('/inventory')
 
     } catch (error) {
       setLoading(false)

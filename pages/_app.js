@@ -23,47 +23,65 @@ export default function App({ Component, pageProps }) {
 
   const [usersDb, setUsersDb] = useState([])
 
+  const syncUserFromSession = async (session) => {
+    if (!session?.user) {
+      setUser(null)
+      return
+    }
+
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle()
+
+      if (profile) {
+        setUser({
+          id: session.user.id,
+          email: profile.email,
+          name: profile.name,
+          phone: profile.phone,
+          role: profile.role || 'clinico'
+        })
+        return
+      }
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading profile:', error)
+      }
+
+      // Fallback seguro si el perfil no existe o no se puede leer aún.
+      setUser({
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.user_metadata?.name || 'Usuario',
+        phone: session.user.user_metadata?.phone || '',
+        role: session.user.user_metadata?.role || 'clinico'
+      })
+    } catch (error) {
+      console.error('Error syncing user session:', error)
+      setUser({
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.user_metadata?.name || 'Usuario',
+        phone: session.user.user_metadata?.phone || '',
+        role: session.user.user_metadata?.role || 'clinico'
+      })
+    }
+  }
+
   // Verificar sesión de Supabase al cargar
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Obtener sesión de Supabase
         const { data: { session } } = await supabase.auth.getSession()
-        
-        if (session?.user) {
-          // Usuario autenticado - obtener perfil
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          if (profile) {
-            setUser({
-              id: session.user.id,
-              email: profile.email,
-              name: profile.name,
-              phone: profile.phone,
-              role: profile.role || 'clinico'
-            })
-          } else if (!error || error?.code === 'PGRST116') {
-            // Si no existe perfil, usar datos de la sesión (permite acceso)
-            setUser({
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.user_metadata?.name || 'Usuario',
-              phone: session.user.user_metadata?.phone || '',
-              role: session.user.user_metadata?.role || 'clinico'
-            })
-          } else {
-            throw error
-          }
-        } else {
-          setUser(null)
-        }
+        await syncUserFromSession(session)
       } catch (error) {
         console.error('Error checking session:', error)
         setUser(null)
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -72,34 +90,7 @@ export default function App({ Component, pageProps }) {
     // Escuchar cambios en la autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          if (profile) {
-            setUser({
-              id: session.user.id,
-              email: profile.email,
-              name: profile.name,
-              phone: profile.phone,
-              role: profile.role || 'clinico'
-            })
-          } else if (!error || error?.code === 'PGRST116') {
-            // Si no existe perfil, usar datos de la sesión (permite acceso)
-            setUser({
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.user_metadata?.name || 'Usuario',
-              phone: session.user.user_metadata?.phone || '',
-              role: session.user.user_metadata?.role || 'clinico'
-            })
-          }
-        } else {
-          setUser(null)
-        }
+        await syncUserFromSession(session)
       }
     )
 
