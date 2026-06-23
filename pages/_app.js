@@ -21,7 +21,6 @@ export default function App({ Component, pageProps }) {
   const [loading, setLoading] = useState(true)
   const [syncStatus, setSyncStatus] = useState('idle')
 
-  const [usersDb, setUsersDb] = useState([])
 
   const syncUserFromSession = async (session) => {
     if (!session?.user) {
@@ -29,12 +28,25 @@ export default function App({ Component, pageProps }) {
       return
     }
 
+    const fallback = {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.user_metadata?.name || 'Usuario',
+      phone: session.user.user_metadata?.phone || '',
+      role: session.user.user_metadata?.role || 'clinico'
+    }
+
     try {
-      const { data: profile, error } = await supabase
+      const profileQuery = supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle()
+      // 5s timeout: if Supabase is slow/sleeping, use JWT fallback instead of hanging
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('profile timeout')), 5000)
+      )
+      const { data: profile, error } = await Promise.race([profileQuery, timeoutPromise])
 
       if (profile) {
         setUser({
@@ -51,49 +63,21 @@ export default function App({ Component, pageProps }) {
         console.error('Error loading profile:', error)
       }
 
-      // Fallback seguro si el perfil no existe o no se puede leer aún.
-      setUser({
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.user_metadata?.name || 'Usuario',
-        phone: session.user.user_metadata?.phone || '',
-        role: session.user.user_metadata?.role || 'clinico'
-      })
+      setUser(fallback)
     } catch (error) {
       console.error('Error syncing user session:', error)
-      setUser({
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.user_metadata?.name || 'Usuario',
-        phone: session.user.user_metadata?.phone || '',
-        role: session.user.user_metadata?.role || 'clinico'
-      })
+      setUser(fallback)
     }
   }
 
-  // Verificar sesión de Supabase al cargar
+  // INITIAL_SESSION fires immediately on mount with current session (or null),
+  // covering what checkSession() used to do — no duplicate Supabase queries.
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        await syncUserFromSession(session)
-      } catch (error) {
-        console.error('Error checking session:', error)
-        setUser(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkSession()
-
-    // Escuchar cambios en la autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         await syncUserFromSession(session)
       }
     )
-
     return () => subscription?.unsubscribe()
   }, [supabase])
 
@@ -194,7 +178,7 @@ export default function App({ Component, pageProps }) {
     for (let i = 1; i < lines.length; i++) {
       const row = lines[i].split(';');
       if (row.length < 5) continue; 
-      const [year, monthName, code, desc, qty] = row;
+      const [year, monthName, , desc, qty] = row;
       const quantity = parseInt(qty) || 0;
       const dateStr = `${year}-${months[monthName] || '01'}-01`;
       for(let j = 0; j < quantity; j++) {
