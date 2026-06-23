@@ -80,10 +80,9 @@ export default function Login() {
         return
       }
 
-      // Login exitoso - redirigir inmediatamente sin esperar un timeout
+      // Login exitoso - el route guard en _app.js redirige a /inventory cuando user queda seteado
       setSuccess('¡Bienvenido! Accediendo al sistema...')
       setLoading(false)
-      await router.replace('/inventory')
 
     } catch (error) {
       setLoading(false)

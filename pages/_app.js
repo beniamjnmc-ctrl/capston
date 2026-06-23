@@ -90,7 +90,6 @@ export default function App({ Component, pageProps }) {
     // Escuchar cambios en la autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setLoading(true)
         await syncUserFromSession(session)
       }
     )
@@ -129,7 +128,12 @@ export default function App({ Component, pageProps }) {
   }
 
   useEffect(() => {
-    if (!loading && router.pathname !== '/' && router.pathname !== '/login') {
+    if (loading) return
+    if (router.pathname === '/login' && user) {
+      router.replace('/inventory')
+      return
+    }
+    if (router.pathname !== '/' && router.pathname !== '/login') {
       if (!user) {
         router.push('/login')
       }
