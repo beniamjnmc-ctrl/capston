@@ -90,6 +90,7 @@ export default function App({ Component, pageProps }) {
     // Escuchar cambios en la autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        setLoading(true)
         await syncUserFromSession(session)
       }
     )
@@ -146,16 +147,12 @@ export default function App({ Component, pageProps }) {
 
   const logout = async () => {
     try {
-      // Cerrar sesión en Supabase
       await supabase.auth.signOut()
     } catch (error) {
       console.error('Error logging out from Supabase:', error)
     }
-    
-    // Limpiar estado local
     setUser(null)
     setInventories(null)
-    setLoading(true)
     router.push('/login')
   }
 

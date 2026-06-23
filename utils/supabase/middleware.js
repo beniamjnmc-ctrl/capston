@@ -35,5 +35,5 @@ export const createClient = (request) => {
     }
   );
 
-  return supabaseResponse;
+  return { supabase, supabaseResponse };
 };

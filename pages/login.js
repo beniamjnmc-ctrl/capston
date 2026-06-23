@@ -37,20 +37,6 @@ export default function Login() {
     }
   }, [supabase, router])
 
-  // Escuchar cambios de autenticación para redirigir automáticamente
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user && router.pathname === '/login') {
-          // Usuario autenticado mientras está en la página de login
-          router.push('/inventory')
-        }
-      }
-    )
-    return () => subscription?.unsubscribe()
-  }, [supabase, router])
-
-
   const validateLogin = () => {
     const e = {}
     if (!loginForm.email) e.email = 'El correo es requerido'
