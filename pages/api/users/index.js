@@ -77,7 +77,8 @@ async function createUser(req, res, user) {
     email_confirm: true,
     user_metadata: {
       name,
-      phone: phone || ''
+      phone: phone || '',
+      role: role || 'clinico'
     }
   })
 
@@ -119,6 +120,13 @@ async function updateUser(req, res, user) {
 
   if (!data || data.length === 0) {
     return res.status(404).json({ error: 'User not found' })
+  }
+
+  // Keep user_metadata.role in sync so the _app.js fallback stays correct
+  if (role) {
+    await supabase.auth.admin.updateUserById(userId, {
+      user_metadata: { role }
+    })
   }
 
   return res.status(200).json({
