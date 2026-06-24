@@ -1,5 +1,5 @@
 import '../styles/globals.css'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import { createClient } from '../utils/supabase/client'
 import { productionData } from '../data/productionData'
@@ -20,6 +20,7 @@ export default function App({ Component, pageProps }) {
   
   const [loading, setLoading] = useState(true)
   const [syncStatus, setSyncStatus] = useState('idle')
+  const loadedUserIdRef = useRef(null)
 
 
   const syncUserFromSession = async (session) => {
@@ -84,13 +85,28 @@ export default function App({ Component, pageProps }) {
   useEffect(() => {
     const loadInventoriesFromSupabase = async () => {
       try {
-        // Por ahora, usar datos por defecto
-        // En el futuro, se pueden sincronizar items específicos desde Supabase
-        // Nota: Los datos reales (inventory_items) se cargan a través de los APIs
-        initializeDefaultClinics()
+        const { data: rows, error } = await supabase
+          .from('clinic_inventories')
+          .select('clinic_key, data')
+
+        if (error) throw error
+
+        if (rows && rows.length > 0) {
+          const merged = {
+            loBarnechea: getDefaultData('loBarnechea'),
+            alcantara: getDefaultData('alcantara')
+          }
+          rows.forEach(row => {
+            if (row.data) {
+              merged[row.clinic_key] = { ...merged[row.clinic_key], ...row.data }
+            }
+          })
+          setInventories(merged)
+        } else {
+          initializeDefaultClinics()
+        }
       } catch (error) {
         console.error('Error loading inventories from Supabase:', error)
-        // Fallback a valores por defecto
         initializeDefaultClinics()
       } finally {
         setLoading(false)
@@ -98,8 +114,12 @@ export default function App({ Component, pageProps }) {
     }
 
     if (user) {
-      loadInventoriesFromSupabase()
+      if (user.id !== loadedUserIdRef.current) {
+        loadedUserIdRef.current = user.id
+        loadInventoriesFromSupabase()
+      }
     } else {
+      loadedUserIdRef.current = null
       setLoading(false)
     }
   }, [user, supabase])
@@ -144,13 +164,25 @@ export default function App({ Component, pageProps }) {
     router.push('/login')
   }
 
-  const updateInventory = async (data) => {
-    // Actualizar estado local
-    setInventories(prev => ({ ...prev, [activeClinic]: data }))
-    
-    // Sincronizar cambios con Supabase (opcional - puede ser asincrónico)
-    // Aquí se podrían guardar los cambios a Supabase si es necesario
-    // Por ahora, los cambios se persisten via RLS policies
+  const updateInventory = async (newData) => {
+    setInventories(prev => ({ ...prev, [activeClinic]: newData }))
+    try {
+      const { productionData: _pd, ...dataToSave } = newData
+      await supabase
+        .from('clinic_inventories')
+        .upsert(
+          {
+            clinic_key: activeClinic,
+            clinic_name: newData.clinicName || activeClinic,
+            data: dataToSave,
+            updated_at: new Date().toISOString(),
+            updated_by: user?.id
+          },
+          { onConflict: 'clinic_key' }
+        )
+    } catch (error) {
+      console.error('Error saving inventory to Supabase:', error)
+    }
   }
 
   const switchClinic = (clinicKey) => {

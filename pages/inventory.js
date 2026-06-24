@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { useApp } from './_app'
+import { createClient } from '../utils/supabase/client'
 import styles from '../styles/Inventory.module.css'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
@@ -941,17 +942,21 @@ function RegistrarPage({ data, updateInventory, currentUser, canUseKits }) {
       })
 
       try {
+        const { data: { session } } = await createClient().auth.getSession()
         await fetch('/api/append-production', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
           body: JSON.stringify({ entries: csvEntries })
         })
       } catch (err) {
-        console.warn('No se pudo guardar en el CSV:', err)
+        console.warn('No se pudo guardar en el historial de procedimientos:', err)
       }
     }
 
-    updateInventory(newData)
+    await updateInventory(newData)
     alert('✓ Atención registrada y stock descontado exitosamente')
     setSelectedProcs([]); setExtraItems([]); setPatient('')
   }
