@@ -29,54 +29,44 @@ export default function App({ Component, pageProps }) {
       return
     }
 
-    const fallback = {
+    // Set user immediately from JWT so route guard and loading unblock without waiting
+    const fromJWT = {
       id: session.user.id,
       email: session.user.email,
       name: session.user.user_metadata?.name || 'Usuario',
       phone: session.user.user_metadata?.phone || '',
       role: session.user.user_metadata?.role || 'clinico'
     }
+    setUser(fromJWT)
 
-    try {
-      const profileQuery = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle()
-      // 5s timeout: if Supabase is slow/sleeping, use JWT fallback instead of hanging
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('profile timeout')), 5000)
-      )
-      const { data: profile, error } = await Promise.race([profileQuery, timeoutPromise])
-
-      if (profile) {
-        setUser({
-          id: session.user.id,
-          email: profile.email,
-          name: profile.name,
-          phone: profile.phone,
-          role: profile.role || 'clinico'
-        })
-        return
-      }
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading profile:', error)
-      }
-
-      setUser(fallback)
-    } catch (error) {
-      console.error('Error syncing user session:', error)
-      setUser(fallback)
-    }
+    // Fire-and-forget profile fetch — corrects role if user_metadata is stale
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .maybeSingle()
+      .then(({ data: profile }) => {
+        if (profile) {
+          setUser({
+            id: session.user.id,
+            email: profile.email,
+            name: profile.name,
+            phone: profile.phone,
+            role: profile.role || fromJWT.role
+          })
+        }
+      })
+      .catch(err => console.warn('Profile fetch failed, using JWT data:', err.message))
   }
 
-  // INITIAL_SESSION fires immediately on mount with current session (or null),
-  // covering what checkSession() used to do — no duplicate Supabase queries.
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         await syncUserFromSession(session)
+        // When INITIAL_SESSION resolves with no session, release the loading lock
+        if (event === 'INITIAL_SESSION' && !session) {
+          setLoading(false)
+        }
       }
     )
     return () => subscription?.unsubscribe()
@@ -85,9 +75,13 @@ export default function App({ Component, pageProps }) {
   useEffect(() => {
     const loadInventoriesFromSupabase = async () => {
       try {
-        const { data: rows, error } = await supabase
+        const inventoryQuery = supabase
           .from('clinic_inventories')
           .select('clinic_key, data')
+        const timeoutGuard = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('inventory load timeout')), 6000)
+        )
+        const { data: rows, error } = await Promise.race([inventoryQuery, timeoutGuard])
 
         if (error) throw error
 
@@ -120,7 +114,6 @@ export default function App({ Component, pageProps }) {
       }
     } else {
       loadedUserIdRef.current = null
-      setLoading(false)
     }
   }, [user, supabase])
 
