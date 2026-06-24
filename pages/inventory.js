@@ -228,28 +228,55 @@ function Dashboard({ data, alerts = [] }) {
   }, [productionData, useProductionData, viewMode, selectedYear, selectedMonth]);
 
   const displayedData = useProductionData ? filteredProduction : filteredHistory
-  const detailCount = useProductionData ? filteredProduction.reduce((sum, entry) => sum + entry.quantity, 0) : filteredHistory.length
+  // filteredHistory has new entries that survive reload (saved in Supabase via attendHistory).
+  // filteredProduction only has the 1,320 static 2024 records — new entries are never saved there.
+  // All stats and the chart must combine both sources.
+  const detailCount = useProductionData
+    ? filteredProduction.reduce((sum, entry) => sum + entry.quantity, 0) + filteredHistory.length
+    : filteredHistory.length
   const detailLabel = useProductionData ? 'Producción' : 'Procedimientos'
 
   const totalBajo = alerts?.filter(a => a.type === 'stock')?.length || 0
   const totalVenc = alerts?.filter(a => a.type === 'vencimiento')?.length || 0
-  const totalAtenciones = useProductionData ? displayedData.reduce((sum, entry) => sum + entry.quantity, 0) : displayedData.length
+  const totalAtenciones = useProductionData
+    ? displayedData.reduce((sum, entry) => sum + entry.quantity, 0) + filteredHistory.length
+    : displayedData.length
 
   const historyData = useMemo(() => {
     const counts = {};
-    displayedData.forEach(item => {
-      const date = item.date || item.fecha;
-      if (!date) return;
-      counts[date] = (counts[date] || 0) + (useProductionData ? item.quantity : 1);
-    });
+    if (useProductionData) {
+      // Static historical records (2024) — from productionData import
+      filteredProduction.forEach(item => {
+        const date = item.date?.substring(0, 10);
+        if (!date) return;
+        counts[date] = (counts[date] || 0) + item.quantity;
+      });
+      // New attendance entries (2025/2026+) — from attendHistory, persisted in Supabase
+      filteredHistory.forEach(item => {
+        const date = item.fecha?.substring(0, 10);
+        if (!date) return;
+        counts[date] = (counts[date] || 0) + 1;
+      });
+    } else {
+      filteredHistory.forEach(item => {
+        const date = item.fecha?.substring(0, 10);
+        if (!date) return;
+        counts[date] = (counts[date] || 0) + 1;
+      });
+    }
     return Object.keys(counts).sort().map(date => ({ date, atenciones: counts[date] }));
-  }, [displayedData, useProductionData]);
+  }, [filteredProduction, filteredHistory, useProductionData]);
 
   const procsData = useMemo(() => {
     const counts = {};
     if (useProductionData) {
       displayedData.forEach(entry => {
         counts[entry.description] = (counts[entry.description] || 0) + entry.quantity;
+      });
+      filteredHistory.forEach(a => {
+        (a.procs || '').split(' + ').forEach(p => {
+          if (p && p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1;
+        });
       });
     } else {
       displayedData.forEach(a => {
@@ -260,7 +287,7 @@ function Dashboard({ data, alerts = [] }) {
       });
     }
     return Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 10).map(e => ({ name: e[0], cantidad: e[1] }));
-  }, [displayedData, useProductionData]);
+  }, [displayedData, filteredHistory, useProductionData]);
 
   const filteredAttendHistory = useMemo(() => {
     const history = data?.attendHistory || [];
@@ -280,6 +307,11 @@ function Dashboard({ data, alerts = [] }) {
       displayedData.forEach(entry => {
         counts[entry.description] = (counts[entry.description] || 0) + entry.quantity;
       });
+      filteredHistory.forEach(a => {
+        (a.procs || '').split(' + ').forEach(p => {
+          if (p && p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1;
+        });
+      });
     } else {
       displayedData.forEach(a => {
         const procs = a.procs.split(' + ');
@@ -289,7 +321,7 @@ function Dashboard({ data, alerts = [] }) {
       });
     }
     return Object.entries(counts).sort((a,b) => b[1]-a[1]).map(e => ({ name: e[0], cantidad: e[1] }));
-  }, [displayedData, useProductionData]);
+  }, [displayedData, filteredHistory, useProductionData]);
 
   const insumosData = useMemo(() => {
     const counts = {};
@@ -928,19 +960,10 @@ function RegistrarPage({ data, updateInventory, currentUser, canUseKits }) {
     newData.attendHistory.unshift({ fecha: isoDate, box: boxes.find(b => b.id === selectedBox)?.name || selectedBox, pac: patient || 'Paciente', procs: procNames.join(' + ') || 'Solo Insumos', ins: logIns.join(', '), user: currentUser?.name || 'Sistema' })
 
     if (csvEntries.length > 0) {
-      if (!newData.productionData) newData.productionData = []
-      csvEntries.forEach(entry => {
-        newData.productionData.push({
-          year: entry.year,
-          month: entry.month,
-          monthKey: String(today.getMonth() + 1).padStart(2, '0'),
-          code: entry.code,
-          description: entry.description,
-          quantity: entry.quantity,
-          date: entry.date
-        })
-      })
-
+      // New entries are captured in attendHistory (persisted to Supabase) and sent to
+      // /api/append-production. Do NOT push to productionData — that field holds only
+      // the 1,320 static records and is never saved to Supabase, so pushing there
+      // would create in-session data that disappears on F5.
       try {
         const { data: { session } } = await createClient().auth.getSession()
         await fetch('/api/append-production', {
