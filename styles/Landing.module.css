@@ -1,0 +1,370 @@
+/* ─── VARIABLES LOCALES ─────────────────────────────────────── */
+/* El verde de marca #0F6E56 es independiente de var(--primary)  */
+
+/* ─── NAV ────────────────────────────────────────────────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+
+.navInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0F6E56;
+  text-decoration: none;
+  white-space: nowrap;
+  letter-spacing: -0.3px;
+}
+
+.navLinks {
+  display: flex;
+  gap: 32px;
+  flex: 1;
+  justify-content: center;
+}
+
+.navLinks a {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.navLinks a:hover {
+  color: #0F6E56;
+}
+
+/* ─── BOTONES ────────────────────────────────────────────────── */
+.btnPrimary {
+  background: #0F6E56;
+  color: #fff !important;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid #0F6E56;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.btnPrimary:hover {
+  opacity: 0.88;
+}
+
+.btnOutline {
+  background: transparent;
+  color: #0F6E56;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid #0F6E56;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-block;
+}
+
+.btnOutline:hover {
+  background: #0F6E56;
+  color: #fff;
+}
+
+/* ─── HERO ───────────────────────────────────────────────────── */
+.hero {
+  background: #fff;
+  padding: 96px 24px 80px;
+  text-align: center;
+}
+
+.heroInner {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e6f4f0;
+  color: #0F6E56;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 28px;
+}
+
+.heroTitle {
+  font-size: 54px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  color: #1e293b;
+  margin-bottom: 20px;
+}
+
+.heroSub {
+  font-size: 18px;
+  color: #64748b;
+  line-height: 1.65;
+  margin-bottom: 36px;
+}
+
+.heroCtas {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ─── SECCIÓN MOCKUP ─────────────────────────────────────────── */
+.mockupSection {
+  background: #f8fafc;
+  padding: 72px 24px;
+}
+
+.mockupWrap {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.sectionEyebrow {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0F6E56;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.sectionTitle {
+  text-align: center;
+  font-size: 34px;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+  margin-bottom: 48px;
+}
+
+/* Ventana de navegador simulada */
+.browser {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0,0,0,0.04);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.browserBar {
+  background: #f1f5f9;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: block;
+  flex-shrink: 0;
+}
+
+.browserUrl {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-left: 12px;
+  flex: 1;
+  max-width: 260px;
+  text-align: center;
+}
+
+.browserContent {
+  padding: 24px;
+}
+
+/* KPIs del mockup */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.kpiCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.kpiCardLabel {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.kpiCardVal {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.valDanger  { color: #e63946; }
+.valWarning { color: #f59e0b; }
+.valSuccess { color: #0F6E56; }
+
+/* Gráfico estático */
+.chartHeader {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chartSvg {
+  width: 100%;
+  height: 110px;
+  display: block;
+}
+
+/* ─── FEATURES ───────────────────────────────────────────────── */
+.featuresSection {
+  background: #fff;
+  padding: 72px 24px;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.featureCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 28px 24px;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.featureCard:hover {
+  box-shadow: 0 6px 24px rgba(15, 110, 86, 0.08);
+  transform: translateY(-2px);
+}
+
+.featureIconWrap {
+  width: 48px;
+  height: 48px;
+  background: #e6f4f0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0F6E56;
+  margin-bottom: 18px;
+}
+
+.featureTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.featureDesc {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.65;
+}
+
+/* ─── FOOTER ─────────────────────────────────────────────────── */
+.footer {
+  background: #1e293b;
+  color: #94a3b8;
+  text-align: center;
+  padding: 28px 24px;
+  font-size: 14px;
+}
+
+.footerInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .navLinks {
+    display: none;
+  }
+
+  .heroTitle {
+    font-size: 36px;
+  }
+
+  .heroSub {
+    font-size: 16px;
+  }
+
+  .kpiRow,
+  .featuresGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .browserUrl {
+    display: none;
+  }
+
+  .sectionTitle {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 30px;
+  }
+
+  .hero {
+    padding: 72px 20px 60px;
+  }
+}
