@@ -200,6 +200,22 @@ function Dashboard({ data, alerts = [] }) {
   const [selectedMonth, setSelectedMonth] = useState('05');
   const [showDetail, setShowDetail] = useState(false);
 
+  const [chartColors, setChartColors] = useState({ brand: '#0F6E56', blue: '#2B4C7E', red: '#C25953' })
+  useEffect(() => {
+    const update = () => {
+      const s = getComputedStyle(document.documentElement)
+      setChartColors({
+        brand: s.getPropertyValue('--chart-brand').trim() || '#0F6E56',
+        blue:  s.getPropertyValue('--chart-blue').trim()  || '#2B4C7E',
+        red:   s.getPropertyValue('--chart-red').trim()   || '#C25953',
+      })
+    }
+    update()
+    const mql = window.matchMedia('(prefers-color-scheme: dark)')
+    mql.addEventListener('change', update)
+    return () => mql.removeEventListener('change', update)
+  }, [])
+
   const productionData = data?.productionData || []
   const useProductionData = productionData.length > 0
 
@@ -382,7 +398,7 @@ function Dashboard({ data, alerts = [] }) {
                 <XAxis dataKey="date" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="atenciones" fill="#0F6E56" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="atenciones" fill={chartColors.brand} radius={[4, 4, 0, 0]} />
               </BarChart>
             ) : (
               <AreaChart data={historyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -390,7 +406,7 @@ function Dashboard({ data, alerts = [] }) {
                 <XAxis dataKey="date" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Area type="monotone" dataKey="atenciones" stroke="#0F6E56" strokeWidth={3} fill="#0F6E56" fillOpacity={0.3} />
+                <Area type="monotone" dataKey="atenciones" stroke={chartColors.brand} strokeWidth={3} fill={chartColors.brand} fillOpacity={0.3} />
               </AreaChart>
             )}
           </ResponsiveContainer>
@@ -398,8 +414,8 @@ function Dashboard({ data, alerts = [] }) {
       </div>
 
       {showDetail && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="card" style={{ width: '80%', height: '80%', background: '#fff', padding: '20px', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--overlay-bg)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card" style={{ width: '80%', height: '80%', background: 'var(--card-bg)', padding: '20px', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3>Detalle Completo de {detailLabel} ({detailCount} registros)</h3>
               <button className="btn" onClick={() => setShowDetail(false)}>Cerrar</button>
@@ -415,7 +431,7 @@ function Dashboard({ data, alerts = [] }) {
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" width={150} fontSize={10} />
                     <Tooltip />
-                    <Bar dataKey="cantidad" fill="#2B4C7E" />
+                    <Bar dataKey="cantidad" fill={chartColors.blue} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -433,7 +449,7 @@ function Dashboard({ data, alerts = [] }) {
               <XAxis type="number" fontSize={12} allowDecimals={false} />
               <YAxis dataKey="name" type="category" width={120} fontSize={11} />
               <Tooltip />
-              <Bar dataKey="cantidad" fill="#2B4C7E" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="cantidad" fill={chartColors.blue} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -446,7 +462,7 @@ function Dashboard({ data, alerts = [] }) {
               <XAxis type="number" fontSize={12} />
               <YAxis dataKey="name" type="category" width={120} fontSize={11} />
               <Tooltip />
-              <Bar dataKey="consumo" fill="#C25953" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="consumo" fill={chartColors.red} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -563,7 +579,7 @@ function ComprasPage({ data, openCreate, openReceive }) {
       <div className="card" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ borderBottom: '2px solid #eee' }}>
+            <tr style={{ borderBottom: '2px solid var(--border)' }}>
               <th style={{ padding: '10px' }}>ID Orden</th>
               <th>Fecha Emisión</th>
               <th>Proveedor</th>
@@ -577,7 +593,7 @@ function ComprasPage({ data, openCreate, openReceive }) {
             {orders.map((po) => (
               <tr 
                 key={po.id} 
-                style={{ borderBottom: '1px solid #eee', cursor: 'pointer', transition: 'background 0.2s' }} 
+                style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}
                 onDoubleClick={() => setDetailPO(po)} 
                 title="Doble clic para ver el detalle de trazabilidad"
               >
@@ -602,7 +618,7 @@ function ComprasPage({ data, openCreate, openReceive }) {
             {orders.length === 0 && <tr><td colSpan="7" className="empty">No hay órdenes de compra registradas.</td></tr>}
           </tbody>
         </table>
-        <p style={{fontSize: '12px', color: '#888', marginTop: '15px'}}>💡 <strong>Tip:</strong> Haz doble clic sobre una orden registrada para ver su detalle (insumos, vencimientos y destino).</p>
+        <p style={{fontSize: '12px', color: 'var(--text-muted)', marginTop: '15px'}}>💡 <strong>Tip:</strong> Haz doble clic sobre una orden registrada para ver su detalle (insumos, vencimientos y destino).</p>
       </div>
 
       {detailPO && <PODetailModal po={detailPO} data={data} onClose={() => setDetailPO(null)} />}
@@ -631,37 +647,38 @@ function CreatePOModal({ data, update, onClose, currentUser }) {
     onClose();
   }
 
-  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 };
-  const cardStyle = { background: '#fff', padding: '30px', borderRadius: '12px', width: '600px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' };
+  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--overlay-bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 };
+  const cardStyle = { background: 'var(--card-bg)', padding: '30px', borderRadius: '12px', width: '600px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' };
+  const inputStyle = { background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-input)', borderRadius: '4px' };
 
   return (
     <div style={modalStyle}>
       <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, color: '#333' }}>Emitir Orden de Compra</h2>
+        <h2 style={{ marginTop: 0, color: 'var(--text-primary)' }}>Emitir Orden de Compra</h2>
         <form onSubmit={handleSubmit}>
           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Proveedor</label>
-          <input placeholder="Nombre del proveedor" style={{ width: '100%', padding: '12px', marginBottom: '20px', borderRadius: '6px', border: '1px solid #ccc' }} onChange={e => setPo({...po, proveedor: e.target.value})} />
-          
+          <input placeholder="Nombre del proveedor" style={{ width: '100%', padding: '12px', marginBottom: '20px', ...inputStyle }} onChange={e => setPo({...po, proveedor: e.target.value})} />
+
           <table style={{ width: '100%', marginBottom: '20px' }}>
             <thead><tr><th style={{ textAlign: 'left', paddingBottom: '10px' }}>Insumo</th><th style={{ textAlign: 'left', paddingBottom: '10px' }}>Cantidad</th></tr></thead>
             <tbody>
               {po.items.map((item, idx) => (
                 <tr key={idx}>
                   <td style={{ paddingRight: '10px' }}>
-                    <select style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }} value={item.pname} onChange={e => { const n = [...po.items]; n[idx].pname = e.target.value; setPo({...po, items: n}) }}>
+                    <select style={{ width: '100%', padding: '10px', ...inputStyle }} value={item.pname} onChange={e => { const n = [...po.items]; n[idx].pname = e.target.value; setPo({...po, items: n}) }}>
                       {data?.products?.map(p => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}
                     </select>
                   </td>
-                  <td><input type="number" style={{ width: '80px', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }} value={item.qty} onChange={e => { const n = [...po.items]; n[idx].qty = parseInt(e.target.value); setPo({...po, items: n}) }} /></td>
+                  <td><input type="number" style={{ width: '80px', padding: '10px', ...inputStyle }} value={item.qty} onChange={e => { const n = [...po.items]; n[idx].qty = parseInt(e.target.value); setPo({...po, items: n}) }} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <button type="button" onClick={() => setPo({...po, items: [...po.items, { pname: data?.products?.[0]?.nombre, qty: 1 }]})} style={{ padding: '8px 15px', background: '#e9ecef', border: 'none', borderRadius: '4px', cursor: 'pointer', marginBottom: '20px' }}>+ Agregar Ítem</button>
-          
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid #eee', paddingTop: '20px' }}>
-            <button type="button" onClick={onClose} style={{ padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
-            <button type="submit" style={{ padding: '10px 20px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Emitir Orden</button>
+          <button type="button" onClick={() => setPo({...po, items: [...po.items, { pname: data?.products?.[0]?.nombre, qty: 1 }]})} style={{ padding: '8px 15px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: 'none', borderRadius: '4px', cursor: 'pointer', marginBottom: '20px' }}>+ Agregar Ítem</button>
+
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
+            <button type="button" onClick={onClose} style={{ padding: '10px 20px', background: 'var(--btn-cancel-bg)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
+            <button type="submit" style={{ padding: '10px 20px', background: 'var(--brand)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Emitir Orden</button>
           </div>
         </form>
       </div>
@@ -697,25 +714,26 @@ function ReceivePOModal({ data, update, po, onClose }) {
     onClose();
   }
 
-  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 };
-  const cardStyle = { background: '#fff', padding: '30px', borderRadius: '12px', width: '650px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' };
+  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--overlay-bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 };
+  const cardStyle = { background: 'var(--card-bg)', padding: '30px', borderRadius: '12px', width: '650px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' };
+  const inputStyle = { background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-input)', borderRadius: '4px' };
 
   return (
     <div style={modalStyle}>
       <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, color: '#333' }}>Recibir Orden #{po?.id.toString().slice(-6)}</h2>
+        <h2 style={{ marginTop: 0, color: 'var(--text-primary)' }}>Recibir Orden #{po?.id.toString().slice(-6)}</h2>
         <form onSubmit={handleSubmit}>
           {po?.items.map((item, idx) => (
-            <div key={idx} style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+            <div key={idx} style={{ marginBottom: '20px', padding: '15px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
               <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>{item.pname} (x{item.qty})</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#666' }}>Fecha Vencimiento</label>
-                  <input type="date" required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} onChange={e => { const n = [...receiveData]; n[idx].venc = e.target.value; setReceiveData(n); }} />
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Fecha Vencimiento</label>
+                  <input type="date" required style={{ width: '100%', padding: '8px', ...inputStyle }} onChange={e => { const n = [...receiveData]; n[idx].venc = e.target.value; setReceiveData(n); }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#666' }}>Ubicación Física</label>
-                  <select style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} onChange={e => { const n = [...receiveData]; n[idx].ubicacion = e.target.value; setReceiveData(n); }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Ubicación Física</label>
+                  <select style={{ width: '100%', padding: '8px', ...inputStyle }} onChange={e => { const n = [...receiveData]; n[idx].ubicacion = e.target.value; setReceiveData(n); }}>
                     <option value="BODEGA">Bodega Central</option>
                     {data?.boxes?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
@@ -723,9 +741,9 @@ function ReceivePOModal({ data, update, po, onClose }) {
               </div>
             </div>
           ))}
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid #eee', paddingTop: '20px' }}>
-            <button type="button" onClick={onClose} style={{ padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '6px' }}>Cancelar</button>
-            <button type="submit" style={{ padding: '10px 20px', background: '#0F6E56', color: '#fff', border: 'none', borderRadius: '6px' }}>Confirmar Recepción</button>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
+            <button type="button" onClick={onClose} style={{ padding: '10px 20px', background: 'var(--btn-cancel-bg)', color: '#fff', border: 'none', borderRadius: '6px' }}>Cancelar</button>
+            <button type="submit" style={{ padding: '10px 20px', background: 'var(--brand)', color: '#fff', border: 'none', borderRadius: '6px' }}>Confirmar Recepción</button>
           </div>
         </form>
       </div>
@@ -734,18 +752,18 @@ function ReceivePOModal({ data, update, po, onClose }) {
 }
 
 function PODetailModal({ po, data, onClose }) {
-  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 };
-  const cardStyle = { background: '#fff', padding: '30px', borderRadius: '12px', width: '600px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' };
+  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--overlay-bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 };
+  const cardStyle = { background: 'var(--card-bg)', padding: '30px', borderRadius: '12px', width: '600px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' };
 
   return (
     <div style={modalStyle} onClick={onClose}>
       <div style={cardStyle} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0, color: '#333' }}>Detalle de Orden #{po.id.toString().slice(-6)}</h2>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}>✖</button>
+          <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>Detalle de Orden #{po.id.toString().slice(-6)}</h2>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}>✖</button>
         </div>
-        
-        <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px' }}>
+
+        <div style={{ background: 'var(--bg-secondary)', padding: '15px', borderRadius: '8px', marginBottom: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px' }}>
           <div><strong>Proveedor:</strong> {po.provider}</div>
           <div><strong>Fecha Emisión:</strong> {po.date}</div>
           <div><strong>Emitido por:</strong> {po.issuedBy || 'Sistema'}</div>
@@ -753,10 +771,10 @@ function PODetailModal({ po, data, onClose }) {
           {po.receivedAt && <div style={{gridColumn: '1 / span 2'}}><strong>Fecha Recepción:</strong> {po.receivedAt}</div>}
         </div>
 
-        <h4 style={{ marginBottom: '10px', color: '#555' }}>Insumos Solicitados</h4>
+        <h4 style={{ marginBottom: '10px', color: 'var(--text-secondary)' }}>Insumos Solicitados</h4>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '14px' }}>
           <thead>
-            <tr style={{ borderBottom: '2px solid #ccc', textAlign: 'left' }}>
+            <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
               <th style={{ padding: '8px' }}>Insumo</th>
               <th style={{ padding: '8px' }}>Cant.</th>
               <th style={{ padding: '8px' }}>Destino</th>
@@ -765,14 +783,14 @@ function PODetailModal({ po, data, onClose }) {
           </thead>
           <tbody>
             {po.items.map((item, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+              <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '8px' }}>{item.pname}</td>
                 <td style={{ padding: '8px' }}>{item.qty}</td>
                 <td style={{ padding: '8px' }}>
-                  {item.ubicacion ? (item.ubicacion === 'BODEGA' ? 'Bodega Central' : data?.boxes?.find(b => b.id === item.ubicacion)?.name || item.ubicacion) : <span style={{color: '#999'}}>Pendiente</span>}
+                  {item.ubicacion ? (item.ubicacion === 'BODEGA' ? 'Bodega Central' : data?.boxes?.find(b => b.id === item.ubicacion)?.name || item.ubicacion) : <span style={{color: 'var(--text-muted)'}}>Pendiente</span>}
                 </td>
                 <td style={{ padding: '8px' }}>
-                  {item.venc ? item.venc : <span style={{color: '#999'}}>Pendiente</span>}
+                  {item.venc ? item.venc : <span style={{color: 'var(--text-muted)'}}>Pendiente</span>}
                 </td>
               </tr>
             ))}
@@ -780,7 +798,7 @@ function PODetailModal({ po, data, onClose }) {
         </table>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cerrar Detalles</button>
+          <button onClick={onClose} style={{ padding: '10px 20px', background: 'var(--btn-cancel-bg)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cerrar Detalles</button>
         </div>
       </div>
     </div>
@@ -793,22 +811,22 @@ function PODetailModal({ po, data, onClose }) {
 function ProfileModal({ user, onClose, logout }) {
   const [msg, setMsg] = useState(null)
 
-  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }
-  const cardStyle = { background: '#fff', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }
+  const modalStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--overlay-bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }
+  const cardStyle = { background: 'var(--card-bg)', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }
 
   return (
     <div style={modalStyle}>
       <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, marginBottom: '5px', color: '#333' }}>Mi Perfil</h2>
-        <p style={{ color: '#666', marginBottom: '25px', fontSize: '14px' }}>
+        <h2 style={{ marginTop: 0, marginBottom: '5px', color: 'var(--text-primary)' }}>Mi Perfil</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '25px', fontSize: '14px' }}>
           <strong>Nombre:</strong> {user?.name} <br/>
           <strong>Correo:</strong> {user?.email} <br/>
           <strong>Rol:</strong> {user?.role}
         </p>
-        
-        <div style={{ borderTop: '1px solid #eee', marginTop: '20px', paddingTop: '20px', display: 'flex', gap: '10px' }}>
-          <button onClick={onClose} style={{ flex: 1, padding: '12px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cerrar</button>
-          <button onClick={logout} style={{ flex: 1, padding: '12px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cerrar Sesión</button>
+
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: '20px', paddingTop: '20px', display: 'flex', gap: '10px' }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '12px', background: 'var(--btn-cancel-bg)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cerrar</button>
+          <button onClick={logout} style={{ flex: 1, padding: '12px', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cerrar Sesión</button>
         </div>
       </div>
     </div>
@@ -1003,7 +1021,7 @@ function RegistrarPage({ data, updateInventory, currentUser, canUseKits }) {
         <div className="form-group" style={{ marginTop: '20px', background: 'var(--bg-secondary)', padding: '15px', borderRadius: '8px', border: '1px solid var(--border)' }}>
           <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>Insumos Adicionales (Opcional)</label>
           {extraItems.map((ins, idx) => (
-            <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}><select style={{ flex: 2, padding: '8px', borderRadius: '4px', border: '1px solid var(--border)' }} value={ins.pname} onChange={e => { const n = [...extraItems]; n[idx].pname = e.target.value; setExtraItems(n); }}>{data?.products?.map(p => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}</select><input type="number" step="0.1" min="0.1" style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid var(--border)' }} value={ins.qty} onChange={e => { const n = [...extraItems]; n[idx].qty = parseFloat(e.target.value) || 0; setExtraItems(n); }} /><button type="button" className="btn btn-danger" style={{ padding: '8px 12px' }} onClick={() => { const n = [...extraItems]; n.splice(idx, 1); setExtraItems(n); }}>X</button></div>
+            <div key={idx} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}><select style={{ flex: 2, padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} value={ins.pname} onChange={e => { const n = [...extraItems]; n[idx].pname = e.target.value; setExtraItems(n); }}>{data?.products?.map(p => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}</select><input type="number" step="0.1" min="0.1" style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} value={ins.qty} onChange={e => { const n = [...extraItems]; n[idx].qty = parseFloat(e.target.value) || 0; setExtraItems(n); }} /><button type="button" className="btn btn-danger" style={{ padding: '8px 12px' }} onClick={() => { const n = [...extraItems]; n.splice(idx, 1); setExtraItems(n); }}>X</button></div>
           ))}
           <button type="button" className="btn" style={{ width: '100%', marginTop: '5px', borderStyle: 'dashed' }} onClick={() => setExtraItems([...extraItems, { pname: data?.products[0]?.nombre || '', qty: 1 }])}>+ Agregar insumo suelto</button>
         </div>
@@ -1047,7 +1065,7 @@ function ProductModal({ data, update, onClose, isNew, setIsNew, activeBox }) {
   }
 
   return (
-    <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+    <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--overlay-bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
       <div className="card" style={{ width: '400px', padding: '30px' }}>
         <h3>Ajuste Manual de Insumo</h3>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}><button type="button" className={`btn ${!isNew ? 'btn-primary' : ''}`} onClick={() => setIsNew(false)} style={{flex:1}}>Existente</button><button type="button" className={`btn ${isNew ? 'btn-primary' : ''}`} onClick={() => setIsNew(true)} style={{flex:1}}>Nuevo</button></div>
@@ -1073,6 +1091,6 @@ function ProcedureModal({ data, update, onClose }) {
   const [name, setName] = useState(''); const [insumos, setInsumos] = useState([])
   const handleSubmit = (e) => { e.preventDefault(); update({ ...data, procedures: [...(data?.procedures||[]), { id: Date.now(), nombre: name, extra: insumos }] }); alert('✓ Kit creado exitosamente'); onClose() }
   return (
-    <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}><div className="card" style={{ width: '400px' }}><h3>Crear Kit</h3><form onSubmit={handleSubmit}><div className="form-group"><label>Nombre del Kit</label><input type="text" required onChange={e => setName(e.target.value)} /></div><div style={{ background: 'var(--bg-secondary)', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}><label>Insumos a descontar:</label>{insumos.map((ins, idx) => (<div key={idx} style={{ display: 'flex', gap: '5px', marginBottom: '5px', marginTop: '5px' }}><select style={{ flex: 2, padding: '8px', borderRadius: '4px' }} value={ins.pname} onChange={e => { const n = [...insumos]; n[idx].pname = e.target.value; setInsumos(n) }}>{data?.products?.map(p => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}</select><input style={{ flex: 1, padding: '8px', borderRadius: '4px' }} type="number" step="0.1" value={ins.qty} onChange={e => { const n = [...insumos]; n[idx].qty = e.target.value; setInsumos(n) }} /><button type="button" className="btn btn-danger" style={{padding: '0 10px'}} onClick={() => { const n = [...insumos]; n.splice(idx, 1); setInsumos(n); }}>X</button></div>))}<button type="button" className="btn" style={{width: '100%', marginTop: '10px', borderStyle: 'dashed'}} onClick={() => setInsumos([...insumos, { pname: data?.products[0]?.nombre, qty: 1 }])}>+ Agregar insumo a la receta</button></div><div style={{ display: 'flex', gap: '10px' }}><button type="submit" className="btn btn-primary" style={{flex: 1}}>Guardar Kit</button> <button type="button" className="btn" style={{flex: 1}} onClick={onClose}>Cancelar</button></div></form></div></div>
+    <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'var(--overlay-bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}><div className="card" style={{ width: '400px' }}><h3>Crear Kit</h3><form onSubmit={handleSubmit}><div className="form-group"><label>Nombre del Kit</label><input type="text" required onChange={e => setName(e.target.value)} /></div><div style={{ background: 'var(--bg-secondary)', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}><label>Insumos a descontar:</label>{insumos.map((ins, idx) => (<div key={idx} style={{ display: 'flex', gap: '5px', marginBottom: '5px', marginTop: '5px' }}><select style={{ flex: 2, padding: '8px', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-input)' }} value={ins.pname} onChange={e => { const n = [...insumos]; n[idx].pname = e.target.value; setInsumos(n) }}>{data?.products?.map(p => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}</select><input style={{ flex: 1, padding: '8px', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-input)' }} type="number" step="0.1" value={ins.qty} onChange={e => { const n = [...insumos]; n[idx].qty = e.target.value; setInsumos(n) }} /><button type="button" className="btn btn-danger" style={{padding: '0 10px'}} onClick={() => { const n = [...insumos]; n.splice(idx, 1); setInsumos(n); }}>X</button></div>))}<button type="button" className="btn" style={{width: '100%', marginTop: '10px', borderStyle: 'dashed'}} onClick={() => setInsumos([...insumos, { pname: data?.products[0]?.nombre, qty: 1 }])}>+ Agregar insumo a la receta</button></div><div style={{ display: 'flex', gap: '10px' }}><button type="submit" className="btn btn-primary" style={{flex: 1}}>Guardar Kit</button> <button type="button" className="btn" style={{flex: 1}} onClick={onClose}>Cancelar</button></div></form></div></div>
   )
 }

@@ -207,7 +207,7 @@
 
 .syncStatus.synced {
   color: var(--success);
-  background: rgba(15, 110, 86, 0.15);
+  background: var(--brand-muted);
 }
 
 @keyframes pulse {
