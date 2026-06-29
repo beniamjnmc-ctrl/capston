@@ -89,6 +89,61 @@
   }
 }
 
+/* ─── OVERRIDE MANUAL — data-theme gana sobre @media ─────────── */
+/* Especificidad (0,1,0) > :root en @media (0,0,1), así que       */
+/* [data-theme] siempre gana cuando el usuario eligió un tema.     */
+
+[data-theme="dark"] {
+  --primary: #38bdf8;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --brand: #14a87c;
+  --brand-muted: rgba(20, 168, 124, 0.18);
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #0d1117;
+  --card-bg: #1e293b;
+  --overlay-bg: rgba(0, 0, 0, 0.72);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border: #2e3748;
+  --border-input: #374151;
+  --input-focus-shadow: rgba(56, 189, 248, 0.18);
+  --btn-cancel-bg: #4b5563;
+  --btn-cancel-bg-hover: #374151;
+  --chart-brand: #14a87c;
+  --chart-blue: #4a7fd4;
+  --chart-red: #d97b76;
+}
+
+[data-theme="light"] {
+  --primary: #0077b6;
+  --secondary: #90e0ef;
+  --success: #11caa0;
+  --warning: #ffb703;
+  --danger: #e63946;
+  --brand: #0F6E56;
+  --brand-muted: rgba(15, 110, 86, 0.15);
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --card-bg: #ffffff;
+  --overlay-bg: rgba(0, 0, 0, 0.50);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --border-input: #d1d5db;
+  --input-focus-shadow: rgba(0, 119, 182, 0.15);
+  --btn-cancel-bg: #6c757d;
+  --btn-cancel-bg-hover: #5a6268;
+  --chart-brand: #0F6E56;
+  --chart-blue: #2B4C7E;
+  --chart-red: #C25953;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

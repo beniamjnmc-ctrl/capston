@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import styles from '../styles/Landing.module.css'
+import ThemeToggle from '../components/ThemeToggle'
 
 // Métricas del mockup — fácil de editar sin tocar el JSX
 const DEMO_METRICS = [
@@ -71,6 +72,7 @@ export default function Landing() {
           <Link href="/login" className={styles.btnPrimary}>
             Iniciar sesión
           </Link>
+          <ThemeToggle />
         </div>
       </nav>
 

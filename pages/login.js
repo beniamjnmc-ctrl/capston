@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { createClient } from '../utils/supabase/client'
 import styles from '../styles/Login.module.css'
+import ThemeToggle from '../components/ThemeToggle'
 
 export default function Login() {
   const router = useRouter()
@@ -179,6 +180,9 @@ export default function Login() {
 
         <div className={styles.rightPanel}>
           <Link href="/" className={styles.backLink}>← Volver al inicio</Link>
+          <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
+            <ThemeToggle />
+          </div>
 
           <div className={styles.formWrap}>
             <div className={styles.tabs}>

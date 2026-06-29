@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { useApp } from './_app'
 import { createClient } from '../utils/supabase/client'
 import styles from '../styles/Inventory.module.css'
+import ThemeToggle from '../components/ThemeToggle'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 export default function Inventory() {
@@ -157,7 +158,7 @@ export default function Inventory() {
                 {currentPage === 'usuarios' && 'Gestión de Usuarios'}
               </h1>
             </div>
-            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div style={{ background: 'var(--bg-secondary)', padding: '10px 15px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginRight: '10px' }}>Sucursal:</span>
                 <select value={activeClinic} onChange={e => switchClinic(e.target.value)} style={{ border: 'none', background: 'transparent', fontWeight: 'bold', fontSize: '16px', outline: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}>
@@ -165,6 +166,7 @@ export default function Inventory() {
                   <option value="alcantara">Alcántara</option>
                 </select>
               </div>
+              <ThemeToggle style={{ border: '1px solid var(--border)', background: 'var(--bg-secondary)' }} />
             </div>
           </header>
 
@@ -213,7 +215,12 @@ function Dashboard({ data, alerts = [] }) {
     update()
     const mql = window.matchMedia('(prefers-color-scheme: dark)')
     mql.addEventListener('change', update)
-    return () => mql.removeEventListener('change', update)
+    // Escucha el toggle manual de tema (disparado desde useTheme.toggleTheme)
+    window.addEventListener('odontool-theme-change', update)
+    return () => {
+      mql.removeEventListener('change', update)
+      window.removeEventListener('odontool-theme-change', update)
+    }
   }, [])
 
   const productionData = data?.productionData || []
