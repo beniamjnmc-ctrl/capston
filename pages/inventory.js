@@ -202,14 +202,18 @@ function Dashboard({ data, alerts = [] }) {
   const [selectedMonth, setSelectedMonth] = useState('05');
   const [showDetail, setShowDetail] = useState(false);
 
-  const [chartColors, setChartColors] = useState({ brand: '#0F6E56', blue: '#2B4C7E', red: '#C25953' })
+  const [chartColors, setChartColors] = useState({ brand: '#0F6E56', blue: '#2B4C7E', red: '#C25953', axis: '#6b7280', grid: '#e5e7eb', tooltipBg: '#ffffff', tooltipText: '#1e293b' })
   useEffect(() => {
     const update = () => {
       const s = getComputedStyle(document.documentElement)
       setChartColors({
-        brand: s.getPropertyValue('--chart-brand').trim() || '#0F6E56',
-        blue:  s.getPropertyValue('--chart-blue').trim()  || '#2B4C7E',
-        red:   s.getPropertyValue('--chart-red').trim()   || '#C25953',
+        brand:       s.getPropertyValue('--chart-brand').trim()    || '#0F6E56',
+        blue:        s.getPropertyValue('--chart-blue').trim()     || '#2B4C7E',
+        red:         s.getPropertyValue('--chart-red').trim()      || '#C25953',
+        axis:        s.getPropertyValue('--text-secondary').trim() || '#6b7280',
+        grid:        s.getPropertyValue('--border').trim()         || '#e5e7eb',
+        tooltipBg:   s.getPropertyValue('--card-bg').trim()        || '#ffffff',
+        tooltipText: s.getPropertyValue('--text-primary').trim()   || '#1e293b',
       })
     }
     update()
@@ -370,18 +374,18 @@ function Dashboard({ data, alerts = [] }) {
       <div className="card" style={{ marginBottom: '20px', padding: '15px' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <h3>Filtros:</h3>
-          <select value={viewMode} onChange={(e) => setViewMode(e.target.value)} style={{ padding: '8px', borderRadius: '4px' }}>
+          <select value={viewMode} onChange={(e) => setViewMode(e.target.value)} style={{ padding: '8px', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-input)' }}>
             <option value="all">Todo el Histórico</option>
             <option value="annual">Vista Anual</option>
             <option value="monthly">Vista Mensual</option>
           </select>
           {(viewMode === 'annual' || viewMode === 'monthly') && (
-            <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} style={{ padding: '8px', borderRadius: '4px' }}>
+            <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} style={{ padding: '8px', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-input)' }}>
               {['2024', '2025', '2026', '2027'].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           )}
           {viewMode === 'monthly' && (
-            <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={{ padding: '8px', borderRadius: '4px' }}>
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={{ padding: '8px', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-input)' }}>
               {['01','02','03','04','05','06','07','08','09','10','11','12'].map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           )}
@@ -401,18 +405,18 @@ function Dashboard({ data, alerts = [] }) {
           <ResponsiveContainer width="100%" height="100%">
             {viewMode === 'monthly' ? (
               <BarChart data={historyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                <XAxis dataKey="date" tick={{ fill: chartColors.axis }} axisLine={{ stroke: chartColors.grid }} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: chartColors.axis }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: chartColors.tooltipBg, border: `1px solid ${chartColors.grid}`, color: chartColors.tooltipText }} />
                 <Bar dataKey="atenciones" fill={chartColors.brand} radius={[4, 4, 0, 0]} />
               </BarChart>
             ) : (
               <AreaChart data={historyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                <XAxis dataKey="date" tick={{ fill: chartColors.axis }} axisLine={{ stroke: chartColors.grid }} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: chartColors.axis }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: chartColors.tooltipBg, border: `1px solid ${chartColors.grid}`, color: chartColors.tooltipText }} />
                 <Area type="monotone" dataKey="atenciones" stroke={chartColors.brand} strokeWidth={3} fill={chartColors.brand} fillOpacity={0.3} />
               </AreaChart>
             )}
@@ -435,9 +439,9 @@ function Dashboard({ data, alerts = [] }) {
               <div style={{ height: '400px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={allProcsData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                    <XAxis type="number" />
-                    <YAxis dataKey="name" type="category" width={150} fontSize={10} />
-                    <Tooltip />
+                    <XAxis type="number" tick={{ fill: chartColors.axis }} axisLine={{ stroke: chartColors.grid }} tickLine={false} />
+                    <YAxis dataKey="name" type="category" width={150} fontSize={10} tick={{ fill: chartColors.axis }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ background: chartColors.tooltipBg, border: `1px solid ${chartColors.grid}`, color: chartColors.tooltipText }} />
                     <Bar dataKey="cantidad" fill={chartColors.blue} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -452,10 +456,10 @@ function Dashboard({ data, alerts = [] }) {
           <h3>Top 10 Procedimientos</h3>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={procsData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" fontSize={12} allowDecimals={false} />
-              <YAxis dataKey="name" type="category" width={120} fontSize={11} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={chartColors.grid} />
+              <XAxis type="number" fontSize={12} allowDecimals={false} tick={{ fill: chartColors.axis }} axisLine={{ stroke: chartColors.grid }} tickLine={false} />
+              <YAxis dataKey="name" type="category" width={120} fontSize={11} tick={{ fill: chartColors.axis }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: chartColors.tooltipBg, border: `1px solid ${chartColors.grid}`, color: chartColors.tooltipText }} />
               <Bar dataKey="cantidad" fill={chartColors.blue} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -465,10 +469,10 @@ function Dashboard({ data, alerts = [] }) {
           <h3>Top 10 Insumos</h3>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={insumosData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" fontSize={12} />
-              <YAxis dataKey="name" type="category" width={120} fontSize={11} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={chartColors.grid} />
+              <XAxis type="number" fontSize={12} tick={{ fill: chartColors.axis }} axisLine={{ stroke: chartColors.grid }} tickLine={false} />
+              <YAxis dataKey="name" type="category" width={120} fontSize={11} tick={{ fill: chartColors.axis }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: chartColors.tooltipBg, border: `1px solid ${chartColors.grid}`, color: chartColors.tooltipText }} />
               <Bar dataKey="consumo" fill={chartColors.red} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
