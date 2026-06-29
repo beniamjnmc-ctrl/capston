@@ -9,7 +9,7 @@ import ThemeToggle from '../components/ThemeToggle'
 export default function Login() {
   const router = useRouter()
   const [supabase] = useState(() => createClient())
-  
+
   const [tab, setTab] = useState('login')
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', phone: '', password: '', confirm: '' })
@@ -17,14 +17,12 @@ export default function Login() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
-  
-  // Verificar si ya hay sesión activa (redirigir si está autenticado)
+
   useEffect(() => {
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) {
-          // Ya está autenticado, redirigir a inventory
           router.push('/inventory')
         }
       } catch (error) {
@@ -32,7 +30,6 @@ export default function Login() {
       }
     }
 
-    // Solo ejecutar si no estamos en el servidor
     if (typeof window !== 'undefined') {
       checkSession()
     }
@@ -45,7 +42,6 @@ export default function Login() {
     if (!loginForm.password) e.password = 'La contraseña es requerida'
     return e
   }
-
 
   const validateRegister = () => {
     const e = {}
@@ -63,13 +59,12 @@ export default function Login() {
     e.preventDefault()
     const errs = validateLogin()
     if (Object.keys(errs).length) { setErrors(errs); return }
-    
+
     setLoading(true)
     setErrors({})
 
     try {
-      // Autenticar con Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: loginForm.email,
         password: loginForm.password,
       })
@@ -81,7 +76,6 @@ export default function Login() {
         return
       }
 
-      // Login exitoso - el route guard en _app.js redirige a /inventory cuando user queda seteado
       setSuccess('¡Bienvenido! Accediendo al sistema...')
       setLoading(false)
 
@@ -96,13 +90,12 @@ export default function Login() {
     e.preventDefault()
     const errs = validateRegister()
     if (Object.keys(errs).length) { setErrors(errs); return }
-    
+
     setLoading(true)
     setErrors({})
 
     try {
-      // Crear usuario en Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: registerForm.email,
         password: registerForm.password,
         options: {
@@ -119,14 +112,10 @@ export default function Login() {
         return
       }
 
-      // Registro exitoso
       setLoading(false)
       setSuccess('¡Cuenta creada con éxito! Por favor, verifica tu correo para confirmar tu cuenta.')
-      
-      // Limpiar formulario
       setRegisterForm({ name: '', email: '', phone: '', password: '', confirm: '' })
-      
-      // Redirigir al login después de 3 segundos
+
       setTimeout(() => {
         setTab('login')
         setSuccess('')
@@ -153,87 +142,138 @@ export default function Login() {
       </Head>
 
       <div className={styles.page}>
-        <div className={styles.leftPanel}>
-          <Link href="/" className={styles.logo}>
-            <span className={styles.logoIcon}>🦷</span>
-            <span>OdonTool</span>
-          </Link>
-          <div className={styles.leftContent}>
-            <div className={styles.leftQuote}>
-              <span className={styles.leftQuoteMark}>"</span>
-              <p>Gestiona tu inventario dental de forma inteligente. Controla stock, procedimientos y atenciones en tiempo real.</p>
-              <div className={styles.leftQuoteAuthor}>
-                <div className={styles.leftAvatar}>OA</div>
-                <div>
-                  <div className={styles.leftName}>Sistema OdonTool</div>
-                  <div className={styles.leftRole}>Inventario para Clínica Auil</div>
-                </div>
-              </div>
-            </div>
-            <div className={styles.leftStats}>
-              <div className={styles.leftStat}><span>7</span> Boxes</div>
-              <div className={styles.leftStat}><span>17+</span> Insumos</div>
-              <div className={styles.leftStat}><span>6</span> Procedimientos</div>
-            </div>
-          </div>
+        <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 10 }}>
+          <ThemeToggle />
         </div>
 
-        <div className={styles.rightPanel}>
-          <Link href="/" className={styles.backLink}>← Volver al inicio</Link>
-          <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
-            <ThemeToggle />
+        <div className={styles.card}>
+          <img src="/logo-odontool.svg" alt="OdonTool" className={styles.cardLogo} />
+          <h2 className={styles.cardTitle}>Ingresa a OdonTool</h2>
+          <p className={styles.cardSub}>Clínica Auil</p>
+
+          <div className={styles.tabs}>
+            <button
+              className={`${styles.tab} ${tab === 'login' ? styles.tabActive : ''}`}
+              onClick={() => switchTab('login')}
+            >
+              Iniciar Sesión
+            </button>
+            <button
+              className={`${styles.tab} ${tab === 'register' ? styles.tabActive : ''}`}
+              onClick={() => switchTab('register')}
+            >
+              Registrarse
+            </button>
           </div>
 
-          <div className={styles.formWrap}>
-            <div className={styles.tabs}>
-              <button
-                className={`${styles.tab} ${tab === 'login' ? styles.tabActive : ''}`}
-                onClick={() => switchTab('login')}
-              >
-                Iniciar Sesión
-              </button>
-              <button
-                className={`${styles.tab} ${tab === 'register' ? styles.tabActive : ''}`}
-                onClick={() => switchTab('register')}
-              >
-                Registrarse
-              </button>
+          {success && (
+            <div className={styles.successMsg}>
+              <span>✓</span> {success}
             </div>
+          )}
 
-            {success && (
-              <div className={styles.successMsg}>
-                <span>✓</span> {success}
+          {tab === 'login' && (
+            <form onSubmit={handleLogin} className={styles.form} noValidate>
+              <div className={styles.field}>
+                <label className={styles.label}>Correo institucional</label>
+                <input
+                  type="email"
+                  className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
+                  placeholder="nombre@auil.cl"
+                  value={loginForm.email}
+                  onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
+                />
+                {errors.email && <span className={styles.error}>{errors.email}</span>}
               </div>
-            )}
 
-            {tab === 'login' && (
-              <form onSubmit={handleLogin} className={styles.form} noValidate>
-                <div className={styles.formHeader}>
-                  <h1 className={styles.formTitle}>Bienvenido a OdonTool</h1>
-                  <p className={styles.formSub}>Acceso exclusivo para personal de la clínica</p>
+              <div className={styles.field}>
+                <label className={styles.label}>Contraseña</label>
+                <div className={styles.inputWrap}>
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
+                    placeholder="••••••••"
+                    value={loginForm.password}
+                    onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                  />
+                  <button type="button" className={styles.togglePass} onClick={() => setShowPass(!showPass)}>
+                    {showPass ? '🙈' : '👁️'}
+                  </button>
                 </div>
+                {errors.password && <span className={styles.error}>{errors.password}</span>}
+              </div>
 
+              <div className={styles.forgotRow}>
+                <a href="#" className={styles.forgotLink}>¿Olvidaste tu contraseña? Recupérala aquí</a>
+              </div>
+
+              <button type="submit" className={styles.btnSubmit} disabled={loading}>
+                {loading ? <span className={styles.spinner}></span> : 'Iniciar sesión'}
+              </button>
+
+              <p className={styles.switchText}>
+                ¿No tienes cuenta?{' '}
+                <button type="button" className={styles.switchBtn} onClick={() => switchTab('register')}>
+                  Regístrate aquí
+                </button>
+              </p>
+            </form>
+          )}
+
+          {tab === 'register' && (
+            <form onSubmit={handleRegister} className={styles.form} noValidate>
+              <div className={styles.formHeader}>
+                <h1 className={styles.formTitle}>Crear cuenta</h1>
+                <p className={styles.formSub}>Registro exclusivo para personal de Clínica Auil</p>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label}>Nombre completo</label>
+                <input
+                  type="text"
+                  className={`${styles.input} ${errors.name ? styles.inputError : ''}`}
+                  placeholder="Juan Pérez"
+                  value={registerForm.name}
+                  onChange={e => setRegisterForm({ ...registerForm, name: e.target.value })}
+                />
+                {errors.name && <span className={styles.error}>{errors.name}</span>}
+              </div>
+
+              <div className={styles.fieldRow}>
                 <div className={styles.field}>
-                  <label className={styles.label}>Correo electrónico corporativo</label>
+                  <label className={styles.label}>Correo corporativo</label>
                   <input
                     type="email"
                     className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
                     placeholder="usuario@auil.cl"
-                    value={loginForm.email}
-                    onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
+                    value={registerForm.email}
+                    onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
                   />
                   {errors.email && <span className={styles.error}>{errors.email}</span>}
                 </div>
+                <div className={styles.field}>
+                  <label className={styles.label}>Teléfono</label>
+                  <input
+                    type="tel"
+                    className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
+                    placeholder="+56 9 1234 5678"
+                    value={registerForm.phone}
+                    onChange={e => setRegisterForm({ ...registerForm, phone: e.target.value })}
+                  />
+                  {errors.phone && <span className={styles.error}>{errors.phone}</span>}
+                </div>
+              </div>
 
+              <div className={styles.fieldRow}>
                 <div className={styles.field}>
                   <label className={styles.label}>Contraseña</label>
                   <div className={styles.inputWrap}>
                     <input
                       type={showPass ? 'text' : 'password'}
                       className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
-                      placeholder="••••••••"
-                      value={loginForm.password}
-                      onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+                      placeholder="Mín. 8 caracteres"
+                      value={registerForm.password}
+                      onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
                     />
                     <button type="button" className={styles.togglePass} onClick={() => setShowPass(!showPass)}>
                       {showPass ? '🙈' : '👁️'}
@@ -241,136 +281,58 @@ export default function Login() {
                   </div>
                   {errors.password && <span className={styles.error}>{errors.password}</span>}
                 </div>
-
-                <div className={styles.forgotRow}>
-                  <a href="#" className={styles.forgotLink}>¿Olvidaste tu contraseña?</a>
-                </div>
-
-                <button type="submit" className={styles.btnSubmit} disabled={loading}>
-                  {loading ? <span className={styles.spinner}></span> : 'Iniciar Sesión'}
-                </button>
-
-                <p className={styles.switchText}>
-                  ¿No tienes cuenta?{' '}
-                  <button type="button" className={styles.switchBtn} onClick={() => switchTab('register')}>
-                    Regístrate aquí
-                  </button>
-                </p>
-              </form>
-            )}
-
-            {tab === 'register' && (
-              <form onSubmit={handleRegister} className={styles.form} noValidate>
-                <div className={styles.formHeader}>
-                  <h1 className={styles.formTitle}>Crear cuenta</h1>
-                  <p className={styles.formSub}>Registro exclusivo para personal de Clínica Auil</p>
-                </div>
-
                 <div className={styles.field}>
-                  <label className={styles.label}>Nombre completo</label>
+                  <label className={styles.label}>Confirmar contraseña</label>
                   <input
-                    type="text"
-                    className={`${styles.input} ${errors.name ? styles.inputError : ''}`}
-                    placeholder="Juan Pérez"
-                    value={registerForm.name}
-                    onChange={e => setRegisterForm({ ...registerForm, name: e.target.value })}
+                    type={showPass ? 'text' : 'password'}
+                    className={`${styles.input} ${errors.confirm ? styles.inputError : ''}`}
+                    placeholder="Repite tu contraseña"
+                    value={registerForm.confirm}
+                    onChange={e => setRegisterForm({ ...registerForm, confirm: e.target.value })}
                   />
-                  {errors.name && <span className={styles.error}>{errors.name}</span>}
+                  {errors.confirm && <span className={styles.error}>{errors.confirm}</span>}
                 </div>
+              </div>
 
-                <div className={styles.fieldRow}>
-                  <div className={styles.field}>
-                    <label className={styles.label}>Correo corporativo</label>
-                    <input
-                      type="email"
-                      className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-                      placeholder="usuario@auil.cl"
-                      value={registerForm.email}
-                      onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
-                    />
-                    {errors.email && <span className={styles.error}>{errors.email}</span>}
+              {registerForm.password && (
+                <div className={styles.passStrength}>
+                  <div className={styles.passStrengthBar}>
+                    <div
+                      className={styles.passStrengthFill}
+                      style={{
+                        width: registerForm.password.length < 6 ? '25%' : registerForm.password.length < 10 ? '60%' : '100%',
+                        background: registerForm.password.length < 6 ? 'var(--danger)' : registerForm.password.length < 10 ? 'var(--warning)' : 'var(--success)'
+                      }}
+                    ></div>
                   </div>
-                  <div className={styles.field}>
-                    <label className={styles.label}>Teléfono</label>
-                    <input
-                      type="tel"
-                      className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
-                      placeholder="+56 9 1234 5678"
-                      value={registerForm.phone}
-                      onChange={e => setRegisterForm({ ...registerForm, phone: e.target.value })}
-                    />
-                    {errors.phone && <span className={styles.error}>{errors.phone}</span>}
-                  </div>
+                  <span className={styles.passStrengthLabel}>
+                    {registerForm.password.length < 6 ? 'Débil' : registerForm.password.length < 10 ? 'Media' : 'Fuerte'}
+                  </span>
                 </div>
+              )}
 
-                <div className={styles.fieldRow}>
-                  <div className={styles.field}>
-                    <label className={styles.label}>Contraseña</label>
-                    <div className={styles.inputWrap}>
-                      <input
-                        type={showPass ? 'text' : 'password'}
-                        className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
-                        placeholder="Mín. 8 caracteres"
-                        value={registerForm.password}
-                        onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
-                      />
-                      <button type="button" className={styles.togglePass} onClick={() => setShowPass(!showPass)}>
-                        {showPass ? '🙈' : '👁️'}
-                      </button>
-                    </div>
-                    {errors.password && <span className={styles.error}>{errors.password}</span>}
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.label}>Confirmar contraseña</label>
-                    <input
-                      type={showPass ? 'text' : 'password'}
-                      className={`${styles.input} ${errors.confirm ? styles.inputError : ''}`}
-                      placeholder="Repite tu contraseña"
-                      value={registerForm.confirm}
-                      onChange={e => setRegisterForm({ ...registerForm, confirm: e.target.value })}
-                    />
-                    {errors.confirm && <span className={styles.error}>{errors.confirm}</span>}
-                  </div>
-                </div>
+              <div className={styles.termsRow}>
+                <input type="checkbox" id="terms" className={styles.checkbox} />
+                <label htmlFor="terms" className={styles.termsLabel}>
+                  Acepto los <a href="#" className={styles.termsLink}>términos y condiciones</a>
+                </label>
+              </div>
 
-                {registerForm.password && (
-                  <div className={styles.passStrength}>
-                    <div className={styles.passStrengthBar}>
-                      <div
-                        className={styles.passStrengthFill}
-                        style={{
-                          width: registerForm.password.length < 6 ? '25%' : registerForm.password.length < 10 ? '60%' : '100%',
-                          background: registerForm.password.length < 6 ? 'var(--danger)' : registerForm.password.length < 10 ? 'var(--warning)' : 'var(--success)'
-                        }}
-                      ></div>
-                    </div>
-                    <span className={styles.passStrengthLabel}>
-                      {registerForm.password.length < 6 ? 'Débil' : registerForm.password.length < 10 ? 'Media' : 'Fuerte'}
-                    </span>
-                  </div>
-                )}
+              <button type="submit" className={styles.btnSubmit} disabled={loading}>
+                {loading ? <span className={styles.spinner}></span> : 'Crear mi cuenta'}
+              </button>
 
-                <div className={styles.termsRow}>
-                  <input type="checkbox" id="terms" className={styles.checkbox} />
-                  <label htmlFor="terms" className={styles.termsLabel}>
-                    Acepto los <a href="#" className={styles.termsLink}>términos y condiciones</a>
-                  </label>
-                </div>
-
-                <button type="submit" className={styles.btnSubmit} disabled={loading}>
-                  {loading ? <span className={styles.spinner}></span> : 'Crear mi cuenta'}
+              <p className={styles.switchText}>
+                ¿Ya tienes cuenta?{' '}
+                <button type="button" className={styles.switchBtn} onClick={() => switchTab('login')}>
+                  Inicia sesión aquí
                 </button>
-
-                <p className={styles.switchText}>
-                  ¿Ya tienes cuenta?{' '}
-                  <button type="button" className={styles.switchBtn} onClick={() => switchTab('login')}>
-                    Inicia sesión aquí
-                  </button>
-                </p>
-              </form>
-            )}
-          </div>
+              </p>
+            </form>
+          )}
         </div>
+
+        <Link href="/" className={styles.backLink}>← Volver al inicio</Link>
       </div>
     </>
   )
