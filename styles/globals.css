@@ -1,30 +1,91 @@
 /* globals.css - Versión Dental Fresh completa */
 
+/* ─── TEMA CLARO (defecto) ───────────────────────────────────── */
 :root {
-  --primary: #0077b6;      /* Azul Dental */
-  --secondary: #90e0ef;    /* Celeste Agua */
-  --success: #11caa0;      /* Verde Clínico */
+  /* Paleta base */
+  --primary: #0077b6;       /* Azul Dental */
+  --secondary: #90e0ef;
+  --success: #11caa0;
   --warning: #ffb703;
   --danger: #e63946;
-  --bg-primary: #ffffff;   /* Fondo Blanco Puro */
-  --bg-secondary: #f8fafc; /* Gris tenue */
-  --bg-tertiary: #f1f5f9;  /* Fondo general */
-  --text-primary: #1e293b; /* Texto principal (casi negro) */
-  --text-secondary: #64748b; /* Texto secundario (gris) */
+
+  /* Verde de marca OdonTool (landing, botones primarios, gráficos) */
+  --brand: #0F6E56;
+  --brand-muted: rgba(15, 110, 86, 0.15); /* fondo tenue para badges/synced */
+
+  /* Superficies */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --card-bg: #ffffff;       /* fondo de modales y cards inline */
+
+  /* Overlays de modales */
+  --overlay-bg: rgba(0, 0, 0, 0.50);
+
+  /* Texto */
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;    /* placeholders y tips */
+
+  /* Bordes e inputs */
   --border: #e2e8f0;
-  --radius: 12px;          /* Bordes un poco más redondeados */
+  --border-input: #d1d5db;  /* borde de inputs dentro de modales */
+  --input-focus-shadow: rgba(0, 119, 182, 0.15);
+
+  /* Botones de acción secundaria (cancelar, cerrar) */
+  --btn-cancel-bg: #6c757d;
+  --btn-cancel-bg-hover: #5a6268;
+
+  /* Colores de series Recharts (leídos en JS vía getComputedStyle) */
+  --chart-brand: #0F6E56;   /* Flujo de Atenciones */
+  --chart-blue: #2B4C7E;    /* Top 10 Procedimientos */
+  --chart-red: #C25953;     /* Top 10 Insumos */
+
+  /* Miscelánea */
+  --radius: 12px;
   --transition: all 0.15s ease;
 }
 
-/* Forzamos a que el modo oscuro mantenga los colores claros y limpios de clínica */
+/* ─── TEMA OSCURO (prefers-color-scheme: dark) ───────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --bg-tertiary: #f1f5f9;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border: #e2e8f0;
+    /* Paleta base — tonos más luminosos para contraste sobre oscuro */
+    --primary: #38bdf8;       /* Sky-400: azul legible sobre dark */
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+
+    /* Verde de marca — más claro para mantener contraste ≥ 4.5:1 */
+    --brand: #14a87c;
+    --brand-muted: rgba(20, 168, 124, 0.18);
+
+    /* Superficies */
+    --bg-primary: #111827;    /* Fondo de paneles principales */
+    --bg-secondary: #1f2937;  /* Fondo de cards, inputs, filas hover */
+    --bg-tertiary: #0d1117;   /* Fondo base de la app */
+    --card-bg: #1e293b;       /* Modales y cards inline */
+
+    /* Overlays */
+    --overlay-bg: rgba(0, 0, 0, 0.72);
+
+    /* Texto */
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* Bordes e inputs */
+    --border: #2e3748;
+    --border-input: #374151;
+    --input-focus-shadow: rgba(56, 189, 248, 0.18);
+
+    /* Botones cancelar */
+    --btn-cancel-bg: #4b5563;
+    --btn-cancel-bg-hover: #374151;
+
+    /* Series Recharts — brillo ajustado para fondos oscuros */
+    --chart-brand: #14a87c;
+    --chart-blue: #4a7fd4;
+    --chart-red: #d97b76;
   }
 }
 

@@ -143,8 +143,8 @@ export default function Landing() {
               >
                 <defs>
                   <linearGradient id="landingAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#0F6E56" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#0F6E56" stopOpacity="0"    />
+                    <stop offset="0%"   style={{ stopColor: 'var(--brand)', stopOpacity: 0.25 }} />
+                    <stop offset="100%" style={{ stopColor: 'var(--brand)', stopOpacity: 0 }}    />
                   </linearGradient>
                 </defs>
                 {/* Área rellena */}
@@ -156,7 +156,7 @@ export default function Landing() {
                 <polyline
                   points={CHART_POINTS}
                   fill="none"
-                  stroke="#0F6E56"
+                  style={{ stroke: 'var(--brand)' }}
                   strokeWidth="2.5"
                   strokeLinejoin="round"
                   strokeLinecap="round"

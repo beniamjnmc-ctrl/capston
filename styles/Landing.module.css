@@ -1,12 +1,9 @@
-/* ─── VARIABLES LOCALES ─────────────────────────────────────── */
-/* El verde de marca #0F6E56 es independiente de var(--primary)  */
-
 /* ─── NAV ────────────────────────────────────────────────────── */
 .nav {
   position: sticky;
   top: 0;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
   z-index: 100;
 }
@@ -28,7 +25,7 @@
   gap: 8px;
   font-size: 20px;
   font-weight: 800;
-  color: #0F6E56;
+  color: var(--brand);
   text-decoration: none;
   white-space: nowrap;
   letter-spacing: -0.3px;
@@ -44,25 +41,25 @@
 .navLinks a {
   font-size: 14px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-secondary);
   text-decoration: none;
   transition: color 0.15s;
 }
 
 .navLinks a:hover {
-  color: #0F6E56;
+  color: var(--brand);
 }
 
 /* ─── BOTONES ────────────────────────────────────────────────── */
 .btnPrimary {
-  background: #0F6E56;
+  background: var(--brand);
   color: #fff !important;
   padding: 9px 20px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
-  border: 2px solid #0F6E56;
+  border: 2px solid var(--brand);
   cursor: pointer;
   transition: opacity 0.15s;
   white-space: nowrap;
@@ -75,26 +72,26 @@
 
 .btnOutline {
   background: transparent;
-  color: #0F6E56;
+  color: var(--brand);
   padding: 9px 20px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
-  border: 2px solid #0F6E56;
+  border: 2px solid var(--brand);
   cursor: pointer;
   transition: all 0.15s;
   display: inline-block;
 }
 
 .btnOutline:hover {
-  background: #0F6E56;
+  background: var(--brand);
   color: #fff;
 }
 
 /* ─── HERO ───────────────────────────────────────────────────── */
 .hero {
-  background: #fff;
+  background: var(--bg-primary);
   padding: 96px 24px 80px;
   text-align: center;
 }
@@ -108,8 +105,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #e6f4f0;
-  color: #0F6E56;
+  background: var(--brand-muted);
+  color: var(--brand);
   padding: 6px 14px;
   border-radius: 99px;
   font-size: 13px;
@@ -122,13 +119,13 @@
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -1px;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 20px;
 }
 
 .heroSub {
   font-size: 18px;
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.65;
   margin-bottom: 36px;
 }
@@ -142,7 +139,7 @@
 
 /* ─── SECCIÓN MOCKUP ─────────────────────────────────────────── */
 .mockupSection {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 72px 24px;
 }
 
@@ -155,7 +152,7 @@
   text-align: center;
   font-size: 12px;
   font-weight: 700;
-  color: #0F6E56;
+  color: var(--brand);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 10px;
@@ -165,27 +162,27 @@
   text-align: center;
   font-size: 34px;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--text-primary);
   letter-spacing: -0.5px;
   margin-bottom: 48px;
 }
 
 /* Ventana de navegador simulada */
 .browser {
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 14px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
 }
 
 .browserBar {
-  background: #f1f5f9;
+  background: var(--bg-tertiary);
   padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: 6px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
 
 .dot {
@@ -197,12 +194,12 @@
 }
 
 .browserUrl {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px 14px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-left: 12px;
   flex: 1;
   max-width: 260px;
@@ -222,8 +219,8 @@
 }
 
 .kpiCard {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px;
   text-align: center;
@@ -231,7 +228,7 @@
 
 .kpiCardLabel {
   font-size: 10px;
-  color: #64748b;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
@@ -243,15 +240,15 @@
   font-weight: 700;
 }
 
-.valDanger  { color: #e63946; }
-.valWarning { color: #f59e0b; }
-.valSuccess { color: #0F6E56; }
+.valDanger  { color: var(--danger);  }
+.valWarning { color: var(--warning); }
+.valSuccess { color: var(--brand);   }
 
 /* Gráfico estático */
 .chartHeader {
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -265,7 +262,7 @@
 
 /* ─── FEATURES ───────────────────────────────────────────────── */
 .featuresSection {
-  background: #fff;
+  background: var(--bg-primary);
   padding: 72px 24px;
 }
 
@@ -278,47 +275,47 @@
 }
 
 .featureCard {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 28px 24px;
   transition: box-shadow 0.15s, transform 0.15s;
 }
 
 .featureCard:hover {
-  box-shadow: 0 6px 24px rgba(15, 110, 86, 0.08);
+  box-shadow: 0 6px 24px var(--brand-muted);
   transform: translateY(-2px);
 }
 
 .featureIconWrap {
   width: 48px;
   height: 48px;
-  background: #e6f4f0;
+  background: var(--brand-muted);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0F6E56;
+  color: var(--brand);
   margin-bottom: 18px;
 }
 
 .featureTitle {
   font-size: 17px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .featureDesc {
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.65;
 }
 
 /* ─── FOOTER ─────────────────────────────────────────────────── */
 .footer {
   background: #1e293b;
-  color: #94a3b8;
+  color: var(--text-muted);
   text-align: center;
   padding: 28px 24px;
   font-size: 14px;

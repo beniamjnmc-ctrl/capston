@@ -336,7 +336,7 @@ export default function Login() {
                         className={styles.passStrengthFill}
                         style={{
                           width: registerForm.password.length < 6 ? '25%' : registerForm.password.length < 10 ? '60%' : '100%',
-                          background: registerForm.password.length < 6 ? '#ef4444' : registerForm.password.length < 10 ? '#f59e0b' : '#10b981'
+                          background: registerForm.password.length < 6 ? 'var(--danger)' : registerForm.password.length < 10 ? 'var(--warning)' : 'var(--success)'
                         }}
                       ></div>
                     </div>
