@@ -5,158 +5,146 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-export default async function handler(req, res) {
-  const { method } = req
+const ACTIVE_ROLES = ['admin', 'clinico', 'asistente']
 
-  // Verificar autenticación usando el token del header
+export default async function handler(req, res) {
   const token = req.headers.authorization?.split(' ')[1]
-  if (!token) {
-    return res.status(401).json({ error: 'No authorization token' })
-  }
+  if (!token) return res.status(401).json({ error: 'No authorization token' })
 
   try {
-    // Verificar el token con Supabase
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid or expired token' })
-    }
+    if (authError || !user) return res.status(401).json({ error: 'Invalid or expired token' })
 
-    // Obtener el perfil del usuario para verificar el rol
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, name')
       .eq('id', user.id)
       .single()
 
-    switch (method) {
-      case 'GET':
-        return await getInventoryItems(req, res, user, profile)
-      case 'POST':
-        return await createInventoryItem(req, res, user, profile)
-      case 'PUT':
-        return await updateInventoryItem(req, res, user, profile)
-      case 'DELETE':
-        return await deleteInventoryItem(req, res, user, profile)
+    switch (req.method) {
+      case 'GET':    return await getProducts(req, res)
+      case 'POST':   return await addProduct(req, res, user, profile)
+      case 'PUT':    return await editProduct(req, res, user, profile)
+      case 'DELETE': return await deleteProduct(req, res, user, profile)
       default:
         res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE'])
         return res.status(405).json({ error: 'Method not allowed' })
     }
-  } catch (error) {
-    console.error('API Error:', error)
-    return res.status(500).json({ error: error.message })
+  } catch (err) {
+    console.error('Items API error:', err)
+    return res.status(500).json({ error: err.message })
   }
 }
 
-async function getInventoryItems(req, res, user, profile) {
-  const { clinicId } = req.query
+async function insertAuditLog({ userId, userName, action, clinicKey, itemName, details }) {
+  await supabase.from('audit_log').insert([{
+    user_id:    userId,
+    user_name:  userName,
+    action,
+    table_name: 'clinic_inventories',
+    record_id:  clinicKey,
+    clinic_key: clinicKey,
+    item_name:  itemName,
+    details,
+  }])
+}
 
-  if (!clinicId) {
-    return res.status(400).json({ error: 'clinicId is required' })
-  }
-
+async function readClinicData(clinicKey) {
   const { data, error } = await supabase
-    .from('inventory_items')
-    .select('*')
-    .eq('clinic_id', clinicId)
-    .order('product_name', { ascending: true })
-
+    .from('clinic_inventories')
+    .select('data')
+    .eq('clinic_key', clinicKey)
+    .single()
   if (error) throw error
-
-  return res.status(200).json({
-    success: true,
-    data: data || []
-  })
+  return data?.data || {}
 }
 
-async function createInventoryItem(req, res, user, profile) {
-  // Solo admin y clinico pueden crear
-  if (!['admin', 'clinico'].includes(profile?.role)) {
-    return res.status(403).json({ error: 'Unauthorized: only admin or clinico can create' })
-  }
-
-  const { clinicId, productCode, productName, category, quantityBodega, minimumStock } = req.body
-
-  if (!clinicId || !productCode || !productName) {
-    return res.status(400).json({ error: 'Missing required fields' })
-  }
-
-  const { data, error } = await supabase
-    .from('inventory_items')
-    .insert([{
-      clinic_id: clinicId,
-      product_code: productCode,
-      product_name: productName,
-      category: category || 'General',
-      quantity_bodega: quantityBodega || 0,
-      minimum_stock: minimumStock || 2,
-      created_by: user.id
-    }])
-    .select()
-
-  if (error) {
-    if (error.code === '23505') {
-      return res.status(409).json({ error: 'Product code already exists for this clinic' })
-    }
-    throw error
-  }
-
-  return res.status(201).json({
-    success: true,
-    data: data[0]
-  })
-}
-
-async function updateInventoryItem(req, res, user, profile) {
-  // Solo admin y clinico pueden actualizar
-  if (!['admin', 'clinico'].includes(profile?.role)) {
-    return res.status(403).json({ error: 'Unauthorized: only admin or clinico can update' })
-  }
-
-  const { id, ...updates } = req.body
-
-  if (!id) {
-    return res.status(400).json({ error: 'id is required' })
-  }
-
-  const { data, error } = await supabase
-    .from('inventory_items')
-    .update({ 
-      ...updates, 
-      updated_at: new Date().toISOString() 
-    })
-    .eq('id', id)
-    .select()
-
-  if (error) throw error
-
-  if (!data || data.length === 0) {
-    return res.status(404).json({ error: 'Item not found' })
-  }
-
-  return res.status(200).json({
-    success: true,
-    data: data[0]
-  })
-}
-
-async function deleteInventoryItem(req, res, user, profile) {
-  // Solo admin puede eliminar
-  if (profile?.role !== 'admin') {
-    return res.status(403).json({ error: 'Unauthorized: only admin can delete' })
-  }
-
-  const { id } = req.body
-
-  if (!id) {
-    return res.status(400).json({ error: 'id is required' })
-  }
-
+async function writeClinicData(clinicKey, newData) {
   const { error } = await supabase
-    .from('inventory_items')
-    .delete()
-    .eq('id', id)
-
+    .from('clinic_inventories')
+    .update({ data: newData })
+    .eq('clinic_key', clinicKey)
   if (error) throw error
+}
 
+async function getProducts(req, res) {
+  const { clinicKey } = req.query
+  if (!clinicKey) return res.status(400).json({ error: 'clinicKey is required' })
+  const clinicData = await readClinicData(clinicKey)
+  return res.status(200).json({ success: true, products: clinicData.products || [] })
+}
+
+async function addProduct(req, res, user, profile) {
+  if (!ACTIVE_ROLES.includes(profile?.role)) {
+    return res.status(403).json({ error: 'Sin permiso para agregar insumos' })
+  }
+  const { clinicKey, product } = req.body
+  if (!clinicKey || !product?.nombre) {
+    return res.status(400).json({ error: 'clinicKey y product.nombre son requeridos' })
+  }
+  const clinicData = await readClinicData(clinicKey)
+  const newProduct = { id: Date.now(), ...product }
+  clinicData.products = [...(clinicData.products || []), newProduct]
+  await writeClinicData(clinicKey, clinicData)
+  await insertAuditLog({
+    userId:    user.id,
+    userName:  profile?.name || user.email,
+    action:    'agregar_insumo',
+    clinicKey,
+    itemName:  newProduct.nombre,
+    details:   { producto_agregado: newProduct },
+  })
+  return res.status(201).json({ success: true, product: newProduct })
+}
+
+async function editProduct(req, res, user, profile) {
+  if (!ACTIVE_ROLES.includes(profile?.role)) {
+    return res.status(403).json({ error: 'Sin permiso para editar insumos' })
+  }
+  const { clinicKey, productId, changes } = req.body
+  if (!clinicKey || !productId || !changes) {
+    return res.status(400).json({ error: 'clinicKey, productId y changes son requeridos' })
+  }
+  const clinicData = await readClinicData(clinicKey)
+  const idx = (clinicData.products || []).findIndex(p => p.id == productId)
+  if (idx === -1) return res.status(404).json({ error: 'Producto no encontrado' })
+
+  const oldProduct = { ...clinicData.products[idx] }
+  const updated = { ...oldProduct, ...changes }
+  clinicData.products[idx] = updated
+  await writeClinicData(clinicKey, clinicData)
+  await insertAuditLog({
+    userId:    user.id,
+    userName:  profile?.name || user.email,
+    action:    'editar_insumo',
+    clinicKey,
+    itemName:  updated.nombre,
+    details:   { anterior: oldProduct, nuevo: updated },
+  })
+  return res.status(200).json({ success: true, product: updated })
+}
+
+async function deleteProduct(req, res, user, profile) {
+  if (!ACTIVE_ROLES.includes(profile?.role)) {
+    return res.status(403).json({ error: 'Sin permiso para eliminar insumos' })
+  }
+  const { clinicKey, productId } = req.body
+  if (!clinicKey || !productId) {
+    return res.status(400).json({ error: 'clinicKey y productId son requeridos' })
+  }
+  const clinicData = await readClinicData(clinicKey)
+  const product = (clinicData.products || []).find(p => p.id == productId)
+  if (!product) return res.status(404).json({ error: 'Producto no encontrado' })
+
+  clinicData.products = clinicData.products.filter(p => p.id != productId)
+  await writeClinicData(clinicKey, clinicData)
+  await insertAuditLog({
+    userId:    user.id,
+    userName:  profile?.name || user.email,
+    action:    'eliminar_insumo',
+    clinicKey,
+    itemName:  product.nombre,
+    details:   { producto_eliminado: product },
+  })
   return res.status(200).json({ success: true })
 }
