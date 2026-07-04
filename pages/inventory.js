@@ -494,6 +494,7 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
   const [supabase] = useState(() => createClient())
   const [editPanel, setEditPanel] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [stockAdjust, setStockAdjust] = useState(null)
   const [saving, setSaving] = useState(false)
 
   const handleAddBox = () => {
@@ -538,6 +539,34 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
     }
   }
 
+  const handleStockAdjust = async (productId, changes) => {
+    setSaving(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      const res = await fetch('/api/inventory/items', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ clinicKey: activeClinic, productId, changes, action: 'ajuste_stock' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Error al ajustar')
+      updateInventory({
+        ...data,
+        products: data.products.map(p => p.id !== productId ? p : {
+          ...p,
+          stocks: { ...p.stocks, ...changes.stocks },
+          mins:   { ...p.mins,   ...changes.mins   },
+        }),
+      })
+      setStockAdjust(null)
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleDeleteConfirm = async () => {
     setSaving(true)
     try {
@@ -561,9 +590,9 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
 
   return (
     <div className="page-content">
-      {activeBox === 'BODEGA' && isAdmin && (
+      {!isPendiente && (
          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' }}>
-           <button className="btn btn-primary" onClick={openModal}>+ Ajuste Manual de Stock</button>
+           <button className="btn btn-primary" onClick={openModal}>+ Agregar / Ajustar Insumo</button>
          </div>
       )}
 
@@ -599,7 +628,7 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
               <th>Mínimo</th>
               <th>% Nivel</th>
               {activeBox === 'BODEGA' && <th>Vencimiento</th>}
-              {!isPendiente && <th style={{ width: '90px' }}>Acciones</th>}
+              {!isPendiente && <th style={{ width: '120px' }}>Acciones</th>}
             </tr>
           </thead>
           <tbody>
@@ -610,7 +639,10 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
               const pct = m > 0 ? Math.min(100, Math.round(s / m * 100)) : 100
               return (
                 <tr key={p.id}>
-                  <td><strong>{p.nombre}</strong></td>
+                  <td>
+                    <strong>{p.nombre}</strong>
+                    {p.marca && <small style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '11px' }}>{p.marca}</small>}
+                  </td>
                   {activeBox === 'BODEGA' && <td><span className="badge">{p.cat || 'General'}</span></td>}
                   <td>{s} {s <= m && s > 0 && <span style={{color: 'var(--warning)', marginLeft: '5px'}}>⚠️</span>}{s === 0 && <span style={{color: 'var(--danger)', marginLeft: '5px'}}>❌</span>}</td>
                   <td>{m}</td>
@@ -618,6 +650,7 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
                   {activeBox === 'BODEGA' && <td>{p.venc || '—'}</td>}
                   {!isPendiente && (
                     <td style={{ whiteSpace: 'nowrap' }}>
+                      <button title="Ajuste rápido de stock" style={{ padding: '3px 8px', marginRight: '4px', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '4px', fontWeight: 'bold' }} onClick={() => setStockAdjust(p)}>±</button>
                       <button title="Editar" style={{ padding: '3px 8px', marginRight: '4px', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '4px' }} onClick={() => setEditPanel(p)}>✏️</button>
                       <button title="Eliminar" style={{ padding: '3px 8px', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--danger)' }} onClick={() => setDeleteConfirm(p)}>🗑️</button>
                     </td>
@@ -629,9 +662,19 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
         </table>
       </div>
 
+      {stockAdjust && (
+        <StockAdjustModal
+          product={stockAdjust}
+          boxes={boxes}
+          saving={saving}
+          onSave={handleStockAdjust}
+          onClose={() => setStockAdjust(null)}
+        />
+      )}
       {editPanel && (
         <EditSlidePanel
           product={editPanel}
+          boxes={boxes}
           saving={saving}
           onSave={handleEditSave}
           onClose={() => setEditPanel(null)}
@@ -1123,31 +1166,47 @@ function HistorialPage({ data }) {
   )
 }
 
-function EditSlidePanel({ product, saving, onSave, onClose }) {
-  const [form, setForm] = useState({
-    nombre: product.nombre || '',
-    cat:    product.cat    || '',
-    unidad: product.unidad || '',
-    venc:   product.venc   || '',
+function EditSlidePanel({ product, boxes, saving, onSave, onClose }) {
+  const [form, setForm] = useState(() => {
+    const allBoxes = [{ id: 'BODEGA', name: 'Bodega Central' }, ...(boxes || [])]
+    const stocks = {}; const mins = {}
+    allBoxes.forEach(b => {
+      stocks[b.id] = product.stocks?.[b.id] ?? 0
+      mins[b.id]   = product.mins?.[b.id]   ?? 2
+    })
+    return {
+      nombre: product.nombre || '',
+      cat:    product.cat    || '',
+      unidad: product.unidad || '',
+      marca:  product.marca  || '',
+      venc:   product.venc   || '',
+      stocks,
+      mins,
+    }
   })
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSave(form)
+    onSave({ nombre: form.nombre, cat: form.cat, unidad: form.unidad,
+             marca: form.marca, venc: form.venc, stocks: form.stocks, mins: form.mins })
   }
 
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg)', zIndex: 200 }} onClick={onClose} />
-      <div style={{ position: 'fixed', top: 0, right: 0, width: '420px', maxWidth: '100vw', height: '100%', background: 'var(--card-bg)', zIndex: 201, boxShadow: '-8px 0 32px rgba(0,0,0,0.18)', overflowY: 'auto', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: '0' }}>
+      <div style={{ position: 'fixed', top: 0, right: 0, width: '420px', maxWidth: '100vw', height: '100%', background: 'var(--card-bg)', zIndex: 201, boxShadow: '-8px 0 32px rgba(0,0,0,0.18)', overflowY: 'auto', padding: '32px 28px', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Editar Insumo</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: 'var(--text-secondary)', lineHeight: 1 }}>×</button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
           <div className="form-group">
             <label>Nombre del insumo</label>
             <input required value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} />
+          </div>
+          <div className="form-group">
+            <label>Marca / Fabricante</label>
+            <input value={form.marca} onChange={e => setForm({...form, marca: e.target.value})} placeholder="Ej: 3M, Septodont, Ultradent" />
           </div>
           <div className="form-group">
             <label>Categoría</label>
@@ -1157,11 +1216,33 @@ function EditSlidePanel({ product, saving, onSave, onClose }) {
             <label>Unidad</label>
             <input value={form.unidad} onChange={e => setForm({...form, unidad: e.target.value})} placeholder="unid, caja, frasco…" />
           </div>
-          <div className="form-group" style={{ marginBottom: '8px' }}>
+          <div className="form-group">
             <label>Vencimiento lote</label>
             <input type="date" value={form.venc} onChange={e => setForm({...form, venc: e.target.value})} />
           </div>
-          <div style={{ display: 'flex', gap: '10px', marginTop: 'auto', paddingTop: '8px' }}>
+          <div style={{ background: 'var(--bg-secondary)', borderRadius: '8px', padding: '14px', border: '1px solid var(--border)' }}>
+            <p style={{ margin: '0 0 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stock por ubicación</p>
+            {[{ id: 'BODEGA', name: 'Bodega Central' }, ...(boxes || [])].map(b => (
+              <div key={b.id} style={{ marginBottom: '12px' }}>
+                <p style={{ margin: '0 0 6px', fontSize: '13px', fontWeight: 500 }}>{b.name}</p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>Stock actual</label>
+                    <input type="number" min="0" value={form.stocks[b.id] ?? 0}
+                      onChange={e => setForm({...form, stocks: {...form.stocks, [b.id]: parseInt(e.target.value) || 0}})}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-input)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>Mínimo</label>
+                    <input type="number" min="0" value={form.mins[b.id] ?? 2}
+                      onChange={e => setForm({...form, mins: {...form.mins, [b.id]: parseInt(e.target.value) || 0}})}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-input)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '10px', paddingTop: '8px' }}>
             <button type="submit" className="btn btn-success" style={{ flex: 1 }} disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</button>
             <button type="button" className="btn" style={{ flex: 1 }} onClick={onClose} disabled={saving}>Cancelar</button>
           </div>
@@ -1189,10 +1270,60 @@ function DeleteConfirmModal({ product, saving, onConfirm, onClose }) {
   )
 }
 
+function StockAdjustModal({ product, boxes, saving, onSave, onClose }) {
+  const displayBoxes = [{ id: 'BODEGA', name: 'Bodega Central' }, ...(boxes || [])]
+  const [loc, setLoc] = useState('BODEGA')
+  const [cantidad, setCantidad] = useState(product.stocks?.['BODEGA'] ?? 0)
+  const [minimo, setMinimo] = useState(product.mins?.['BODEGA'] ?? 2)
+
+  const handleLocChange = (newLoc) => {
+    setLoc(newLoc)
+    setCantidad(product.stocks?.[newLoc] ?? 0)
+    setMinimo(product.mins?.[newLoc] ?? 2)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}>
+      <div className="card" style={{ width: '400px', padding: '28px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+          <h3 style={{ margin: 0 }}>Ajuste de Stock</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '14px' }}>
+          <strong style={{ color: 'var(--text-primary)' }}>{product.nombre}</strong>
+          {product.marca && <span> · {product.marca}</span>}
+        </p>
+        <div className="form-group">
+          <label>Ubicación</label>
+          <select value={loc} onChange={e => handleLocChange(e.target.value)} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-input)' }}>
+            {displayBoxes.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Stock actual en {displayBoxes.find(b => b.id === loc)?.name}</label>
+          <input type="number" min="0" value={cantidad} onChange={e => setCantidad(parseInt(e.target.value) || 0)} />
+        </div>
+        <div className="form-group" style={{ marginBottom: '20px' }}>
+          <label>Stock mínimo</label>
+          <input type="number" min="0" value={minimo} onChange={e => setMinimo(parseInt(e.target.value) || 0)} />
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-success" style={{ flex: 1 }} disabled={saving}
+            onClick={() => onSave(product.id, { stocks: { [loc]: cantidad }, mins: { [loc]: minimo } })}>
+            {saving ? 'Guardando…' : 'Guardar ajuste'}
+          </button>
+          <button className="btn" style={{ flex: 1 }} onClick={onClose} disabled={saving}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const ACTION_LABELS = {
-  agregar_insumo: { label: 'Agregar',  cls: 'good'    },
-  editar_insumo:  { label: 'Editar',   cls: 'warning' },
-  eliminar_insumo:{ label: 'Eliminar', cls: 'danger'  },
+  agregar_insumo:  { label: 'Agregar',  cls: 'good'    },
+  editar_insumo:   { label: 'Editar',   cls: 'warning' },
+  eliminar_insumo: { label: 'Eliminar', cls: 'danger'  },
+  ajuste_stock:    { label: 'Ajuste',   cls: 'warning' },
 }
 
 function AuditLogPage({ activeClinic }) {
@@ -1367,7 +1498,7 @@ function AuditLogPage({ activeClinic }) {
 
 function ProductModal({ data, update, onClose, isNew, setIsNew, activeBox }) {
   const products = data?.products || []; const boxes = data?.boxes || []
-  const [form, setForm] = useState({ nombre: '', ubicacion: activeBox, cantidad: 0, venc: '', existenteId: products[0]?.id || '' })
+  const [form, setForm] = useState({ nombre: '', ubicacion: activeBox, cantidad: 0, venc: '', marca: '', cat: '', unidad: '', existenteId: products[0]?.id || '' })
   
   const handleSubmit = (e) => {
     e.preventDefault(); 
@@ -1375,7 +1506,7 @@ function ProductModal({ data, update, onClose, isNew, setIsNew, activeBox }) {
     if (!newData.products) newData.products = []
     
     if (isNew) {
-      const newProd = { id: Date.now(), nombre: form.nombre, venc: form.venc, stocks: { BODEGA: 0 }, mins: { BODEGA: 5 } }
+      const newProd = { id: Date.now(), nombre: form.nombre, cat: form.cat, unidad: form.unidad, marca: form.marca, venc: form.venc, stocks: { BODEGA: 0 }, mins: { BODEGA: 5 } }
       newData.boxes.forEach(b => { newProd.stocks[b.id] = 0; newProd.mins[b.id] = 2 })
       newProd.stocks[form.ubicacion] = parseInt(form.cantidad)
       newData.products.push(newProd)
@@ -1396,9 +1527,18 @@ function ProductModal({ data, update, onClose, isNew, setIsNew, activeBox }) {
         <h3>Ajuste Manual de Insumo</h3>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}><button type="button" className={`btn ${!isNew ? 'btn-primary' : ''}`} onClick={() => setIsNew(false)} style={{flex:1}}>Existente</button><button type="button" className={`btn ${isNew ? 'btn-primary' : ''}`} onClick={() => setIsNew(true)} style={{flex:1}}>Nuevo</button></div>
         <form onSubmit={handleSubmit}>
-          {isNew ? <div className="form-group"><label>Nombre</label><input type="text" required onChange={e => setForm({...form, nombre: e.target.value})} /></div> : <div className="form-group"><label>Insumo</label><select onChange={e => setForm({...form, existenteId: e.target.value})}>{products.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select></div>}
+          {isNew ? (
+            <>
+              <div className="form-group"><label>Nombre del insumo</label><input type="text" required onChange={e => setForm({...form, nombre: e.target.value})} /></div>
+              <div className="form-group"><label>Marca / Fabricante</label><input type="text" placeholder="Ej: 3M, Septodont, Ultradent" onChange={e => setForm({...form, marca: e.target.value})} /></div>
+              <div className="form-group"><label>Categoría</label><input type="text" placeholder="Ej: Resina, Anestesia" onChange={e => setForm({...form, cat: e.target.value})} /></div>
+              <div className="form-group"><label>Unidad</label><input type="text" placeholder="unid, caja, frasco…" onChange={e => setForm({...form, unidad: e.target.value})} /></div>
+            </>
+          ) : (
+            <div className="form-group"><label>Insumo</label><select onChange={e => setForm({...form, existenteId: e.target.value})}>{products.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select></div>
+          )}
           <div className="form-group">
-            <label>Ubicación</label>
+            <label>Stock inicial en: <strong>{[{id:'BODEGA',name:'Bodega Central'},...boxes].find(b => b.id === form.ubicacion)?.name || form.ubicacion}</strong></label>
             <select value={form.ubicacion} onChange={e => setForm({...form, ubicacion: e.target.value})}>
               <option value="BODEGA">Bodega Central</option>
               {boxes.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}

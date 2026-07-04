@@ -6,6 +6,7 @@ const supabase = createClient(
 )
 
 const ACTIVE_ROLES = ['admin', 'clinico', 'asistente']
+const EDIT_ACTIONS = ['editar_insumo', 'ajuste_stock']
 
 export default async function handler(req, res) {
   const token = req.headers.authorization?.split(' ')[1]
@@ -101,22 +102,30 @@ async function editProduct(req, res, user, profile) {
   if (!ACTIVE_ROLES.includes(profile?.role)) {
     return res.status(403).json({ error: 'Sin permiso para editar insumos' })
   }
-  const { clinicKey, productId, changes } = req.body
+  const { clinicKey, productId, changes, action = 'editar_insumo' } = req.body
   if (!clinicKey || !productId || !changes) {
     return res.status(400).json({ error: 'clinicKey, productId y changes son requeridos' })
   }
+  const auditAction = EDIT_ACTIONS.includes(action) ? action : 'editar_insumo'
+
   const clinicData = await readClinicData(clinicKey)
   const idx = (clinicData.products || []).findIndex(p => p.id == productId)
   if (idx === -1) return res.status(404).json({ error: 'Producto no encontrado' })
 
   const oldProduct = { ...clinicData.products[idx] }
-  const updated = { ...oldProduct, ...changes }
+  // Deep-merge stocks y mins: evita sobreescribir ubicaciones no incluidas en changes
+  const updated = {
+    ...oldProduct,
+    ...changes,
+    ...(changes.stocks && { stocks: { ...oldProduct.stocks, ...changes.stocks } }),
+    ...(changes.mins   && { mins:   { ...oldProduct.mins,   ...changes.mins   } }),
+  }
   clinicData.products[idx] = updated
   await writeClinicData(clinicKey, clinicData)
   await insertAuditLog({
     userId:    user.id,
     userName:  profile?.name || user.email,
-    action:    'editar_insumo',
+    action:    auditAction,
     clinicKey,
     itemName:  updated.nombre,
     details:   { anterior: oldProduct, nuevo: updated },
