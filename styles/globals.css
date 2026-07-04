@@ -421,7 +421,12 @@ tr:hover td {
   color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
   opacity: 0.9;
 }
 
@@ -431,10 +436,28 @@ tr:hover td {
   color: white;
 }
 
+.btn-success:hover,
+.btn-success:focus,
+.btn-success:active {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+  opacity: 0.9;
+}
+
 .btn-danger {
   background: var(--danger);
   border-color: var(--danger);
   color: white;
+}
+
+.btn-danger:hover,
+.btn-danger:focus,
+.btn-danger:active {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+  opacity: 0.9;
 }
 
 /* BOX TABS */
