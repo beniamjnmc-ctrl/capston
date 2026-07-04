@@ -619,7 +619,7 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
                   {!isPendiente && (
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <button title="Editar" style={{ padding: '3px 8px', marginRight: '4px', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '4px' }} onClick={() => setEditPanel(p)}>✏️</button>
-                      {isAdmin && <button title="Eliminar" style={{ padding: '3px 8px', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--danger)' }} onClick={() => setDeleteConfirm(p)}>🗑️</button>}
+                      <button title="Eliminar" style={{ padding: '3px 8px', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--danger)' }} onClick={() => setDeleteConfirm(p)}>🗑️</button>
                     </td>
                   )}
                 </tr>
