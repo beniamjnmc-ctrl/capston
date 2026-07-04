@@ -183,7 +183,7 @@ export default function Inventory() {
             {currentPage === 'registrar' && <RegistrarPage data={inventoryData} updateInventory={updateInventory} currentUser={user} canUseKits={canUseKits} />}
             {currentPage === 'historial' && <HistorialPage data={inventoryData} />}
             {currentPage === 'historial-inventario' && !isPendiente && <AuditLogPage activeClinic={activeClinic} />}
-            {/* {currentPage === 'usuarios' && isAdmin && <UsuariosPage usersDb={usersDb} registerNewUser={registerNewUser} deleteUser={deleteUser} currentUser={user} />} */}
+            {currentPage === 'usuarios' && isAdmin && <UsuariosPage user={user} />}
           </div>
         </main>
       </div>
@@ -960,14 +960,292 @@ function ProfileModal({ user, onClose, logout }) {
   )
 }
 
-/*
-// ============================================================================
-// USUARIOS PAGE - DEPRECATED
-// ============================================================================
-// Este componente debe ser reimplementado usando las APIs de Supabase
-// Ver: pages/api/users/index.js para la gestión de usuarios
-// Por ahora está comentado ya que depende de funciones removidas
-*/
+function UsuariosPage({ user: currentUser }) {
+  const [supabase] = useState(() => createClient())
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(null)
+  const [selectedRoles, setSelectedRoles] = useState({})
+  const [rowState, setRowState] = useState({})
+
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token
+  }
+
+  const fetchUsers = async () => {
+    setLoading(true)
+    setFetchError(null)
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      const list = json.users || []
+      setUsers(list)
+      const roles = {}
+      list.forEach(u => { roles[u.id] = u.role === 'pendiente' ? 'clinico' : u.role })
+      setSelectedRoles(roles)
+    } catch (err) {
+      setFetchError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchUsers() }, [])
+
+  const setRow = (id, state) =>
+    setRowState(prev => ({ ...prev, [id]: { ...prev[id], ...state } }))
+
+  const clearMsg = (id) =>
+    setTimeout(() => setRow(id, { msg: '', isError: false }), 3000)
+
+  const handleActivate = async (userId) => {
+    const newRole = selectedRoles[userId] || 'clinico'
+    setRow(userId, { saving: true, msg: '', isError: false })
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId, role: newRole }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u))
+      setRow(userId, { saving: false, msg: 'Activado', isError: false })
+      clearMsg(userId)
+    } catch (err) {
+      setRow(userId, { saving: false, msg: err.message, isError: true })
+    }
+  }
+
+  const handleReject = async (userId, name) => {
+    if (!confirm(`¿Rechazar y eliminar a "${name}"? Esta accion no se puede deshacer.`)) return
+    setRow(userId, { saving: true, msg: '', isError: false })
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setUsers(prev => prev.filter(u => u.id !== userId))
+    } catch (err) {
+      setRow(userId, { saving: false, msg: err.message, isError: true })
+    }
+  }
+
+  const handleUpdateRole = async (userId) => {
+    const newRole = selectedRoles[userId]
+    if (!newRole) return
+    setRow(userId, { saving: true, msg: '', isError: false })
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId, role: newRole }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u))
+      setRow(userId, { saving: false, msg: 'Rol actualizado', isError: false })
+      clearMsg(userId)
+    } catch (err) {
+      setRow(userId, { saving: false, msg: err.message, isError: true })
+    }
+  }
+
+  const handleDelete = async (userId, name) => {
+    if (userId === currentUser?.id) return
+    if (!confirm(`¿Eliminar definitivamente a "${name}"? Esta accion no se puede deshacer.`)) return
+    setRow(userId, { saving: true, msg: '', isError: false })
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setUsers(prev => prev.filter(u => u.id !== userId))
+    } catch (err) {
+      setRow(userId, { saving: false, msg: err.message, isError: true })
+    }
+  }
+
+  const pending = users.filter(u => u.role === 'pendiente')
+  const active  = users.filter(u => u.role !== 'pendiente')
+
+  const ROLE_COLORS = { admin: '#ef4444', clinico: '#3b82f6', asistente: '#10b981', pendiente: '#f59e0b' }
+  const ROLE_LABELS = { admin: 'Admin', clinico: 'Clínico', asistente: 'Asistente', pendiente: 'Pendiente' }
+
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+
+  const selStyle = {
+    padding: '6px 8px', borderRadius: '6px', fontSize: '13px',
+    background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+    border: '1px solid var(--border-input)', cursor: 'pointer',
+  }
+  const tdStyle = { padding: '10px 12px', borderBottom: '1px solid var(--border-input)', verticalAlign: 'middle' }
+  const thStyle = { padding: '10px 12px', textAlign: 'left', fontSize: '12px', color: 'var(--text-secondary)', borderBottom: '2px solid var(--border-input)', fontWeight: 600 }
+
+  if (loading) return (
+    <div className="page-content">
+      <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
+        <div style={{ color: 'var(--text-secondary)' }}>Cargando usuarios...</div>
+      </div>
+    </div>
+  )
+
+  if (fetchError) return (
+    <div className="page-content">
+      <div className="card">
+        <p style={{ color: '#ef4444' }}>Error al cargar usuarios: {fetchError}</p>
+        <button className="btn btn-primary" onClick={fetchUsers}>Reintentar</button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="page-content">
+      {pending.length > 0 && (
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0 }}>Usuarios Pendientes de Activación</h3>
+            <span style={{ background: '#ef4444', color: '#fff', borderRadius: '12px', padding: '2px 10px', fontSize: '13px', fontWeight: 700 }}>{pending.length}</span>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={thStyle}>Nombre</th>
+                  <th style={thStyle}>Email</th>
+                  <th style={thStyle}>Teléfono</th>
+                  <th style={thStyle}>Registro</th>
+                  <th style={thStyle}>Rol a asignar</th>
+                  <th style={thStyle}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pending.map(u => {
+                  const rs = rowState[u.id] || {}
+                  return (
+                    <tr key={u.id}>
+                      <td style={tdStyle}><strong>{u.name || '—'}</strong></td>
+                      <td style={tdStyle}>{u.email}</td>
+                      <td style={tdStyle}>{u.phone || '—'}</td>
+                      <td style={tdStyle} title={u.created_at}>{fmtDate(u.created_at)}</td>
+                      <td style={tdStyle}>
+                        <select style={selStyle} value={selectedRoles[u.id] || 'clinico'}
+                          onChange={e => setSelectedRoles(prev => ({ ...prev, [u.id]: e.target.value }))}>
+                          <option value="admin">Admin</option>
+                          <option value="clinico">Clínico</option>
+                          <option value="asistente">Asistente</option>
+                        </select>
+                      </td>
+                      <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+                        <button className="btn btn-success" style={{ marginRight: '8px', padding: '6px 14px', fontSize: '13px' }}
+                          disabled={rs.saving} onClick={() => handleActivate(u.id)}>
+                          {rs.saving ? 'Guardando...' : 'Activar'}
+                        </button>
+                        <button style={{ padding: '6px 14px', fontSize: '13px', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', cursor: rs.saving ? 'not-allowed' : 'pointer' }}
+                          disabled={rs.saving} onClick={() => handleReject(u.id, u.name || u.email)}>
+                          Rechazar
+                        </button>
+                        {rs.msg && (
+                          <span style={{ marginLeft: '10px', fontSize: '12px', color: rs.isError ? '#ef4444' : '#10b981' }}>
+                            {rs.msg}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <h3 style={{ margin: 0 }}>Usuarios Activos</h3>
+          <span style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', borderRadius: '12px', padding: '2px 10px', fontSize: '13px', fontWeight: 600 }}>{active.length}</span>
+        </div>
+        {active.length === 0 ? (
+          <p style={{ color: 'var(--text-secondary)' }}>No hay usuarios activos.</p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={thStyle}>Nombre</th>
+                  <th style={thStyle}>Email</th>
+                  <th style={thStyle}>Rol actual</th>
+                  <th style={thStyle}>Teléfono</th>
+                  <th style={thStyle}>Registro</th>
+                  <th style={thStyle}>Cambiar rol</th>
+                  <th style={thStyle}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {active.map(u => {
+                  const rs = rowState[u.id] || {}
+                  const isSelf = u.id === currentUser?.id
+                  const roleColor = ROLE_COLORS[u.role] || '#888'
+                  return (
+                    <tr key={u.id}>
+                      <td style={tdStyle}><strong>{u.name || '—'}</strong></td>
+                      <td style={tdStyle}>{u.email}</td>
+                      <td style={tdStyle}>
+                        <span style={{ background: roleColor, color: '#fff', borderRadius: '10px', padding: '2px 10px', fontSize: '12px', fontWeight: 600 }}>
+                          {ROLE_LABELS[u.role] || u.role}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>{u.phone || '—'}</td>
+                      <td style={tdStyle} title={u.created_at}>{fmtDate(u.created_at)}</td>
+                      <td style={tdStyle}>
+                        <select style={selStyle} value={selectedRoles[u.id] || u.role}
+                          onChange={e => setSelectedRoles(prev => ({ ...prev, [u.id]: e.target.value }))}>
+                          <option value="admin">Admin</option>
+                          <option value="clinico">Clínico</option>
+                          <option value="asistente">Asistente</option>
+                        </select>
+                      </td>
+                      <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+                        <button className="btn btn-primary" style={{ marginRight: '6px', padding: '6px 12px', fontSize: '13px' }}
+                          disabled={rs.saving} onClick={() => handleUpdateRole(u.id)}>
+                          {rs.saving ? 'Guardando...' : 'Actualizar rol'}
+                        </button>
+                        <span title={isSelf ? 'No puedes eliminarte a ti mismo' : ''}>
+                          <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '13px' }}
+                            disabled={rs.saving || isSelf} onClick={() => handleDelete(u.id, u.name || u.email)}>
+                            Eliminar
+                          </button>
+                        </span>
+                        {rs.msg && (
+                          <span style={{ marginLeft: '10px', fontSize: '12px', color: rs.isError ? '#ef4444' : '#10b981' }}>
+                            {rs.msg}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function AlertasPage({ alerts = [] }) {
   const vencimientos = alerts?.filter(a => a.type === 'vencimiento') || []
