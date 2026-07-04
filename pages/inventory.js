@@ -72,6 +72,7 @@ export default function Inventory() {
   const isAdmin = user?.role === 'admin';
   const isClinico = user?.role === 'clinico';
   const isAsistente = user?.role === 'asistente';
+  const isPendiente = user?.role === 'pendiente';
   const canViewKits = isAdmin || isClinico || isAsistente;
   const canUseKits = isAdmin || isClinico;
   const canManageKits = isAdmin;
@@ -104,7 +105,8 @@ export default function Inventory() {
             {canViewKits && <button className={`${styles.navItem} ${currentPage === 'procedimientos' ? styles.active : ''}`} onClick={() => setCurrentPage('procedimientos')}><span>✦</span> Kits de Procedimiento</button>}
             <button className={`${styles.navItem} ${currentPage === 'registrar' ? styles.active : ''}`} onClick={() => setCurrentPage('registrar')}><span>⊕</span> Registrar atención</button>
             <button className={`${styles.navItem} ${currentPage === 'historial' ? styles.active : ''}`} onClick={() => setCurrentPage('historial')}><span>≡</span> Historial</button>
-            
+            {!isPendiente && <button className={`${styles.navItem} ${currentPage === 'historial-inventario' ? styles.active : ''}`} onClick={() => setCurrentPage('historial-inventario')}><span>📋</span> Historial Inventario</button>}
+
             {isAdmin && (
               <>
                 <div className={styles.navSection}>Administración</div>
@@ -155,6 +157,7 @@ export default function Inventory() {
                 {currentPage === 'procedimientos' && 'Kits de Procedimiento'}
                 {currentPage === 'registrar' && 'Registrar Atención Clínica'}
                 {currentPage === 'historial' && 'Historial de Operaciones'}
+                {currentPage === 'historial-inventario' && 'Historial de Inventario'}
                 {currentPage === 'usuarios' && 'Gestión de Usuarios'}
               </h1>
             </div>
@@ -173,12 +176,13 @@ export default function Inventory() {
           <div className={styles.content}>
             {currentPage === 'dashboard' && <Dashboard data={inventoryData} alerts={alerts} />}
             {currentPage === 'alertas' && <AlertasPage alerts={alerts} />}
-            {currentPage === 'boxes' && <BoxesPage data={inventoryData} activeBox={activeBox} setActiveBox={setActiveBox} updateInventory={updateInventory} isAdmin={isAdmin} openModal={() => setShowProductModal(true)} />}
+            {currentPage === 'boxes' && <BoxesPage data={inventoryData} activeBox={activeBox} setActiveBox={setActiveBox} updateInventory={updateInventory} isAdmin={isAdmin} openModal={() => setShowProductModal(true)} isPendiente={isPendiente} activeClinic={activeClinic} />}
             {currentPage === 'transferir' && <TransferirPage data={inventoryData} updateInventory={updateInventory} />}
             {currentPage === 'compras' && isAdmin && <ComprasPage data={inventoryData} updateInventory={updateInventory} openCreate={() => setShowCreatePOModal(true)} openReceive={(po) => { setSelectedPO(po); setShowReceivePOModal(true); }} />}
             {currentPage === 'procedimientos' && canViewKits && <ProcedimientosPage data={inventoryData} updateInventory={updateInventory} openModal={() => setShowProcModal(true)} canManageKits={canManageKits} />}
             {currentPage === 'registrar' && <RegistrarPage data={inventoryData} updateInventory={updateInventory} currentUser={user} canUseKits={canUseKits} />}
             {currentPage === 'historial' && <HistorialPage data={inventoryData} />}
+            {currentPage === 'historial-inventario' && !isPendiente && <AuditLogPage activeClinic={activeClinic} />}
             {/* {currentPage === 'usuarios' && isAdmin && <UsuariosPage usersDb={usersDb} registerNewUser={registerNewUser} deleteUser={deleteUser} currentUser={user} />} */}
           </div>
         </main>
@@ -482,17 +486,21 @@ function Dashboard({ data, alerts = [] }) {
   )
 }
 
-function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, openModal }) {
+function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, openModal, isPendiente, activeClinic }) {
   const boxes = data?.boxes || []
   const displayBoxes = [{ id: 'BODEGA', name: '📦 Bodega Central' }, ...boxes]
   const products = data?.products || []
+
+  const [supabase] = useState(() => createClient())
+  const [editPanel, setEditPanel] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   const handleAddBox = () => {
     const name = prompt("Ingrese el nombre del nuevo box (Ej: Box Quirúrgico):")
     if (name) {
       const newId = `BOX_${Date.now()}`
-      const newData = { ...data, boxes: [...boxes, { id: newId, name }] }
-      updateInventory(newData)
+      updateInventory({ ...data, boxes: [...boxes, { id: newId, name }] })
       setActiveBox(newId)
     }
   }
@@ -504,9 +512,50 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
 
   const handleDeleteBox = (id) => {
     if (confirm("¿Estás seguro de eliminar este box? Esto no borrará los insumos de bodega, pero el box desaparecerá.")) {
-      const newData = { ...data, boxes: boxes.filter(b => b.id !== id) }
-      updateInventory(newData)
+      updateInventory({ ...data, boxes: boxes.filter(b => b.id !== id) })
       setActiveBox('BODEGA')
+    }
+  }
+
+  const handleEditSave = async (changes) => {
+    setSaving(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      const res = await fetch('/api/inventory/items', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ clinicKey: activeClinic, productId: editPanel.id, changes }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Error al editar')
+      updateInventory({ ...data, products: data.products.map(p => p.id === editPanel.id ? { ...p, ...changes } : p) })
+      setEditPanel(null)
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    setSaving(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      const res = await fetch('/api/inventory/items', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ clinicKey: activeClinic, productId: deleteConfirm.id }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Error al eliminar')
+      updateInventory({ ...data, products: data.products.filter(p => p.id !== deleteConfirm.id) })
+      setDeleteConfirm(null)
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -550,13 +599,14 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
               <th>Mínimo</th>
               <th>% Nivel</th>
               {activeBox === 'BODEGA' && <th>Vencimiento</th>}
+              {!isPendiente && <th style={{ width: '90px' }}>Acciones</th>}
             </tr>
           </thead>
           <tbody>
             {products.map(p => {
               const m = p.mins?.[activeBox] ?? 2
               const s = p.stocks?.[activeBox] ?? p[activeBox] ?? 0
-              if (activeBox !== 'BODEGA' && m <= 0 && s <= 0) return null 
+              if (activeBox !== 'BODEGA' && m <= 0 && s <= 0) return null
               const pct = m > 0 ? Math.min(100, Math.round(s / m * 100)) : 100
               return (
                 <tr key={p.id}>
@@ -566,12 +616,35 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
                   <td>{m}</td>
                   <td><div className="bar" style={{ width: pct + '%' }}></div>{pct}%</td>
                   {activeBox === 'BODEGA' && <td>{p.venc || '—'}</td>}
+                  {!isPendiente && (
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button title="Editar" style={{ padding: '3px 8px', marginRight: '4px', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '4px' }} onClick={() => setEditPanel(p)}>✏️</button>
+                      <button title="Eliminar" style={{ padding: '3px 8px', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--danger)' }} onClick={() => setDeleteConfirm(p)}>🗑️</button>
+                    </td>
+                  )}
                 </tr>
               )
             })}
           </tbody>
         </table>
       </div>
+
+      {editPanel && (
+        <EditSlidePanel
+          product={editPanel}
+          saving={saving}
+          onSave={handleEditSave}
+          onClose={() => setEditPanel(null)}
+        />
+      )}
+      {deleteConfirm && (
+        <DeleteConfirmModal
+          product={deleteConfirm}
+          saving={saving}
+          onConfirm={handleDeleteConfirm}
+          onClose={() => setDeleteConfirm(null)}
+        />
+      )}
     </div>
   )
 }
@@ -1046,6 +1119,248 @@ function HistorialPage({ data }) {
   return (
     <div className="page-content">
       <div className="card"><h3>Historial</h3><table><thead><tr><th>Fecha</th><th>Box</th><th>Paciente</th><th>Kits</th><th>Insumos</th><th>Usuario</th></tr></thead><tbody>{data?.attendHistory?.map((a, i) => (<tr key={i}><td>{a.fecha}</td><td>{a.box}</td><td>{a.pac}</td><td style={{fontSize:'12px'}}>{a.procs}</td><td style={{fontSize:'11px'}}>{a.ins}</td><td><span className="badge">{a.user}</span></td></tr>))}{(!data?.attendHistory || data.attendHistory.length === 0) && <tr><td colSpan="6" className="empty">Sin atenciones registradas</td></tr>}</tbody></table></div>
+    </div>
+  )
+}
+
+function EditSlidePanel({ product, saving, onSave, onClose }) {
+  const [form, setForm] = useState({
+    nombre: product.nombre || '',
+    cat:    product.cat    || '',
+    unidad: product.unidad || '',
+    venc:   product.venc   || '',
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onSave(form)
+  }
+
+  return (
+    <>
+      <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg)', zIndex: 200 }} onClick={onClose} />
+      <div style={{ position: 'fixed', top: 0, right: 0, width: '420px', maxWidth: '100vw', height: '100%', background: 'var(--card-bg)', zIndex: 201, boxShadow: '-8px 0 32px rgba(0,0,0,0.18)', overflowY: 'auto', padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: '0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Editar Insumo</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: 'var(--text-secondary)', lineHeight: 1 }}>×</button>
+        </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+          <div className="form-group">
+            <label>Nombre del insumo</label>
+            <input required value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} />
+          </div>
+          <div className="form-group">
+            <label>Categoría</label>
+            <input value={form.cat} onChange={e => setForm({...form, cat: e.target.value})} />
+          </div>
+          <div className="form-group">
+            <label>Unidad</label>
+            <input value={form.unidad} onChange={e => setForm({...form, unidad: e.target.value})} placeholder="unid, caja, frasco…" />
+          </div>
+          <div className="form-group" style={{ marginBottom: '8px' }}>
+            <label>Vencimiento lote</label>
+            <input type="date" value={form.venc} onChange={e => setForm({...form, venc: e.target.value})} />
+          </div>
+          <div style={{ display: 'flex', gap: '10px', marginTop: 'auto', paddingTop: '8px' }}>
+            <button type="submit" className="btn btn-success" style={{ flex: 1 }} disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</button>
+            <button type="button" className="btn" style={{ flex: 1 }} onClick={onClose} disabled={saving}>Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </>
+  )
+}
+
+function DeleteConfirmModal({ product, saving, onConfirm, onClose }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}>
+      <div className="card" style={{ width: '380px', padding: '32px', textAlign: 'center' }}>
+        <div style={{ fontSize: '40px', marginBottom: '12px' }}>🗑️</div>
+        <h3 style={{ margin: '0 0 8px' }}>¿Eliminar insumo?</h3>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
+          Estás a punto de eliminar <strong>{product.nombre}</strong>.<br />Esta acción no se puede deshacer.
+        </p>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-danger" style={{ flex: 1 }} onClick={onConfirm} disabled={saving}>{saving ? 'Eliminando…' : 'Sí, eliminar'}</button>
+          <button className="btn" style={{ flex: 1 }} onClick={onClose} disabled={saving}>Cancelar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const ACTION_LABELS = {
+  agregar_insumo: { label: 'Agregar',  cls: 'good'    },
+  editar_insumo:  { label: 'Editar',   cls: 'warning' },
+  eliminar_insumo:{ label: 'Eliminar', cls: 'danger'  },
+}
+
+function AuditLogPage({ activeClinic }) {
+  const [supabase]  = useState(() => createClient())
+  const [records,  setRecords]  = useState([])
+  const [total,    setTotal]    = useState(0)
+  const [pages,    setPages]    = useState(1)
+  const [page,     setPage]     = useState(1)
+  const [loading,  setLoading]  = useState(false)
+  const [filters,  setFilters]  = useState({ action: '', desde: '', hasta: '' })
+
+  const fetchLogs = async (currentPage = 1, currentFilters = filters) => {
+    setLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      const params = new URLSearchParams({ clinicKey: activeClinic, page: String(currentPage), limit: '20' })
+      if (currentFilters.action) params.set('action', currentFilters.action)
+      if (currentFilters.desde)  params.set('desde', currentFilters.desde)
+      if (currentFilters.hasta)  params.set('hasta', currentFilters.hasta + 'T23:59:59Z')
+      const res = await fetch(`/api/inventory/audit-log?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+      const json = await res.json()
+      if (res.ok) { setRecords(json.records || []); setTotal(json.total || 0); setPages(json.pages || 1) }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchLogs(page, filters) }, [page, activeClinic])
+
+  const handleFilter = (e) => { e.preventDefault(); setPage(1); fetchLogs(1, filters) }
+  const handleClear  = () => {
+    const empty = { action: '', desde: '', hasta: '' }
+    setFilters(empty); setPage(1); fetchLogs(1, empty)
+  }
+
+  const exportCSV = () => {
+    const headers = ['Fecha', 'Usuario', 'Accion', 'Insumo', 'Sede']
+    const rows = records.map(r => [
+      new Date(r.created_at).toLocaleString('es-CL'),
+      r.user_name || r.user_id || '',
+      ACTION_LABELS[r.action]?.label || r.action,
+      r.item_name || '',
+      r.clinic_key || '',
+    ])
+    const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = `historial-inventario-${activeClinic}-${new Date().toISOString().slice(0,10)}.csv`
+    a.click()
+  }
+
+  const exportPDF = async () => {
+    const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib')
+    const doc  = await PDFDocument.create()
+    const font = await doc.embedFont(StandardFonts.Helvetica)
+    const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+    let pdfPage = doc.addPage([595, 842])
+    let y = pdfPage.getSize().height - 40
+
+    pdfPage.drawText('Historial de Inventario - OdonTool', { x: 40, y, font: bold, size: 13, color: rgb(0.06, 0.43, 0.34) })
+    y -= 18
+    pdfPage.drawText(`Sucursal: ${activeClinic}   Fecha: ${new Date().toLocaleDateString('es-CL')}`, { x: 40, y, font, size: 9, color: rgb(0.4, 0.4, 0.4) })
+    y -= 28
+
+    const cols = [40, 140, 270, 350, 450]
+    const hdrs = ['Fecha', 'Usuario', 'Accion', 'Insumo', 'Sede']
+    hdrs.forEach((h, i) => pdfPage.drawText(h, { x: cols[i], y, font: bold, size: 9, color: rgb(0, 0, 0) }))
+    y -= 14
+
+    for (const r of records) {
+      if (y < 60) { pdfPage = doc.addPage([595, 842]); y = pdfPage.getSize().height - 40 }
+      const row = [
+        new Date(r.created_at).toLocaleDateString('es-CL'),
+        (r.user_name || (r.user_id || '').slice(0, 16)),
+        (ACTION_LABELS[r.action]?.label || r.action),
+        (r.item_name  || '').slice(0, 22),
+        (r.clinic_key || ''),
+      ]
+      row.forEach((v, i) => pdfPage.drawText(String(v), { x: cols[i], y, font, size: 8, color: rgb(0.1, 0.1, 0.1) }))
+      y -= 13
+    }
+
+    const bytes = await doc.save()
+    const blob  = new Blob([bytes], { type: 'application/pdf' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = `historial-inventario-${activeClinic}-${new Date().toISOString().slice(0,10)}.pdf`
+    a.click()
+  }
+
+  const inputStyle = { padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-input)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }
+
+  return (
+    <div className="page-content">
+      <form onSubmit={handleFilter} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px', alignItems: 'flex-end' }}>
+        <div>
+          <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--text-secondary)' }}>Acción</label>
+          <select value={filters.action} onChange={e => setFilters({...filters, action: e.target.value})} style={inputStyle}>
+            <option value="">Todas</option>
+            <option value="agregar_insumo">Agregar</option>
+            <option value="editar_insumo">Editar</option>
+            <option value="eliminar_insumo">Eliminar</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--text-secondary)' }}>Desde</label>
+          <input type="date" value={filters.desde} onChange={e => setFilters({...filters, desde: e.target.value})} style={inputStyle} />
+        </div>
+        <div>
+          <label style={{ fontSize: '12px', display: 'block', marginBottom: '4px', color: 'var(--text-secondary)' }}>Hasta</label>
+          <input type="date" value={filters.hasta} onChange={e => setFilters({...filters, hasta: e.target.value})} style={inputStyle} />
+        </div>
+        <button type="submit" className="btn btn-primary">Filtrar</button>
+        <button type="button" className="btn" onClick={handleClear}>Limpiar</button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <button type="button" className="btn" onClick={exportCSV} disabled={records.length === 0}>⬇ CSV</button>
+          <button type="button" className="btn" onClick={exportPDF} disabled={records.length === 0}>⬇ PDF</button>
+        </div>
+      </form>
+
+      <div className="card" style={{ overflowX: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <h3 style={{ margin: 0 }}>Registros ({total})</h3>
+        </div>
+        {loading ? (
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '30px 0' }}>Cargando…</p>
+        ) : (
+          <table style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Acción</th>
+                <th>Insumo</th>
+                <th>Sede</th>
+                <th>Detalle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map(r => {
+                const act = ACTION_LABELS[r.action] || { label: r.action, cls: '' }
+                return (
+                  <tr key={r.id}>
+                    <td style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleString('es-CL')}</td>
+                    <td>{r.user_name || (r.user_id || '').slice(0, 8)}</td>
+                    <td><span className={`badge ${act.cls}`}>{act.label}</span></td>
+                    <td><strong>{r.item_name || '—'}</strong></td>
+                    <td>{r.clinic_key || '—'}</td>
+                    <td style={{ fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {r.details ? JSON.stringify(r.details).slice(0, 60) + '…' : '—'}
+                    </td>
+                  </tr>
+                )
+              })}
+              {records.length === 0 && (
+                <tr><td colSpan={6} className="empty">Sin registros para los filtros seleccionados</td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
+        {pages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
+            <button className="btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Anterior</button>
+            <span style={{ padding: '8px 12px', color: 'var(--text-secondary)', fontSize: '13px' }}>Pág {page} / {pages}</span>
+            <button className="btn" disabled={page === pages} onClick={() => setPage(p => p + 1)}>Siguiente →</button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
