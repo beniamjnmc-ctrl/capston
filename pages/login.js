@@ -213,9 +213,9 @@ export default function Login() {
 
               <p className={styles.switchText}>
                 ¿No tienes cuenta?{' '}
-                <button type="button" className={styles.switchBtn} onClick={() => switchTab('register')}>
+                <Link href="/register" className={styles.switchBtn}>
                   Regístrate aquí
-                </button>
+                </Link>
               </p>
             </form>
           )}
