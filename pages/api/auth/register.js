@@ -27,11 +27,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
+    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
       data: { name: nombre },
     })
 
     if (error) {
+      console.error('Supabase invite error:', JSON.stringify(error, null, 2))
       if (
         error.message?.toLowerCase().includes('already registered') ||
         error.message?.toLowerCase().includes('already been invited') ||
