@@ -298,21 +298,21 @@ function Dashboard({ data, alerts = [] }) {
     if (useProductionData) {
       // Static historical records (2024) — from productionData import
       filteredProduction.forEach(item => {
-        const date = item.date?.substring(0, 10);
-        if (!date) return;
-        counts[date] = (counts[date] || 0) + item.quantity;
+        const month = item.date?.substring(0, 7);
+        if (!month) return;
+        counts[month] = (counts[month] || 0) + item.quantity;
       });
       // New attendance entries (2025/2026+) — from attendHistory, persisted in Supabase
       filteredHistory.forEach(item => {
-        const date = item.fecha?.substring(0, 10);
-        if (!date) return;
-        counts[date] = (counts[date] || 0) + 1;
+        const month = item.fecha?.substring(0, 7);
+        if (!month) return;
+        counts[month] = (counts[month] || 0) + 1;
       });
     } else {
       filteredHistory.forEach(item => {
-        const date = item.fecha?.substring(0, 10);
-        if (!date) return;
-        counts[date] = (counts[date] || 0) + 1;
+        const month = item.fecha?.substring(0, 7);
+        if (!month) return;
+        counts[month] = (counts[month] || 0) + 1;
       });
     }
     return Object.keys(counts).sort().map(date => ({ date, atenciones: counts[date] }));
