@@ -8,6 +8,20 @@ import styles from '../styles/Inventory.module.css'
 import ThemeToggle from '../components/ThemeToggle'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
+function toProcsString(procs) {
+  if (!procs) return ''
+  if (typeof procs === 'string') return procs
+  if (Array.isArray(procs)) return procs.map(p => p.nombre || p.name || '').filter(Boolean).join(' + ')
+  return String(procs)
+}
+
+function toInsString(ins) {
+  if (!ins) return ''
+  if (typeof ins === 'string') return ins
+  if (Array.isArray(ins)) return ins.map(i => typeof i === 'string' ? i : (i.nombre || i.name || '')).filter(Boolean).join(', ')
+  return String(ins)
+}
+
 export default function Inventory() {
   const router = useRouter()
   const { inventoryData, updateInventory, activeClinic, switchClinic, syncData, syncStatus, logout, loading, user, loadAttendHistory } = useApp()
@@ -311,13 +325,13 @@ function Dashboard({ data, alerts = [] }) {
         counts[entry.description] = (counts[entry.description] || 0) + entry.quantity;
       });
       filteredHistory.forEach(a => {
-        (a.procs || '').split(' + ').forEach(p => {
+        toProcsString(a.procs).split(' + ').forEach(p => {
           if (p && p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1;
         });
       });
     } else {
       displayedData.forEach(a => {
-        const procs = a.procs.split(' + ');
+        const procs = toProcsString(a.procs).split(' + ');
         procs.forEach(p => {
           if (p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1;
         });
@@ -345,13 +359,13 @@ function Dashboard({ data, alerts = [] }) {
         counts[entry.description] = (counts[entry.description] || 0) + entry.quantity;
       });
       filteredHistory.forEach(a => {
-        (a.procs || '').split(' + ').forEach(p => {
+        toProcsString(a.procs).split(' + ').forEach(p => {
           if (p && p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1;
         });
       });
     } else {
       displayedData.forEach(a => {
-        const procs = a.procs.split(' + ');
+        const procs = toProcsString(a.procs).split(' + ');
         procs.forEach(p => {
           if (p !== 'Solo Insumos' && p !== 'Insumos Adicionales') counts[p] = (counts[p] || 0) + 1;
         });
@@ -363,8 +377,9 @@ function Dashboard({ data, alerts = [] }) {
   const insumosData = useMemo(() => {
     const counts = {};
     filteredAttendHistory.forEach(a => {
-      if (!a.ins) return;
-      const items = a.ins.split(', ');
+      const insStr = toInsString(a.ins)
+      if (!insStr) return;
+      const items = insStr.split(', ');
       items.forEach(item => {
         const match = item.match(/(.+?)\s*\(\-(.+?)\)/);
         if (match) {
@@ -1445,7 +1460,7 @@ function RegistrarPage({ data, updateInventory, currentUser, canUseKits }) {
 function HistorialPage({ data }) {
   return (
     <div className="page-content">
-      <div className="card"><h3>Historial</h3><table><thead><tr><th>Fecha</th><th>Box</th><th>Paciente</th><th>Kits</th><th>Insumos</th><th>Usuario</th></tr></thead><tbody>{data?.attendHistory?.map((a, i) => (<tr key={i}><td>{a.fecha}</td><td>{a.box}</td><td>{a.pac}</td><td style={{fontSize:'12px'}}>{a.procs}</td><td style={{fontSize:'11px'}}>{a.ins}</td><td><span className="badge">{a.user}</span></td></tr>))}{(!data?.attendHistory || data.attendHistory.length === 0) && <tr><td colSpan="6" className="empty">Sin atenciones registradas</td></tr>}</tbody></table></div>
+      <div className="card"><h3>Historial</h3><table><thead><tr><th>Fecha</th><th>Box</th><th>Paciente</th><th>Kits</th><th>Insumos</th><th>Usuario</th></tr></thead><tbody>{data?.attendHistory?.map((a, i) => (<tr key={i}><td>{a.fecha}</td><td>{a.box}</td><td>{a.pac}</td><td style={{fontSize:'12px'}}>{toProcsString(a.procs)}</td><td style={{fontSize:'11px'}}>{toInsString(a.ins)}</td><td><span className="badge">{a.user}</span></td></tr>))}{(!data?.attendHistory || data.attendHistory.length === 0) && <tr><td colSpan="6" className="empty">Sin atenciones registradas</td></tr>}</tbody></table></div>
     </div>
   )
 }
