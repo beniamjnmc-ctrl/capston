@@ -647,7 +647,7 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
               <th>Stock</th>
               <th>Mínimo</th>
               <th>% Nivel</th>
-              {activeBox === 'BODEGA' && <th>Vencimiento</th>}
+              <th>Vencimiento</th>
               {!isPendiente && <th style={{ width: '120px' }}>Acciones</th>}
             </tr>
           </thead>
@@ -667,7 +667,7 @@ function BoxesPage({ data, activeBox, setActiveBox, updateInventory, isAdmin, op
                   <td>{s} {s <= m && s > 0 && <span style={{color: 'var(--warning)', marginLeft: '5px'}}>⚠️</span>}{s === 0 && <span style={{color: 'var(--danger)', marginLeft: '5px'}}>❌</span>}</td>
                   <td>{m}</td>
                   <td><div className="bar" style={{ width: pct + '%' }}></div>{pct}%</td>
-                  {activeBox === 'BODEGA' && <td>{p.venc || '—'}</td>}
+                  <td>{p.venc || '—'}</td>
                   {!isPendiente && (
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <button title="Ajuste rápido de stock" style={{ padding: '3px 8px', marginRight: '4px', cursor: 'pointer', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '4px', fontWeight: 'bold' }} onClick={() => setStockAdjust(p)}>±</button>
