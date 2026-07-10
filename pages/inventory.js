@@ -294,29 +294,28 @@ function Dashboard({ data, alerts = [] }) {
     : displayedData.length
 
   const historyData = useMemo(() => {
+    const len = viewMode === 'monthly' ? 10 : 7;
     const counts = {};
     if (useProductionData) {
-      // Static historical records (2024) — from productionData import
       filteredProduction.forEach(item => {
-        const month = item.date?.substring(0, 7);
-        if (!month) return;
-        counts[month] = (counts[month] || 0) + item.quantity;
+        const key = item.date?.substring(0, len);
+        if (!key) return;
+        counts[key] = (counts[key] || 0) + item.quantity;
       });
-      // New attendance entries (2025/2026+) — from attendHistory, persisted in Supabase
       filteredHistory.forEach(item => {
-        const month = item.fecha?.substring(0, 7);
-        if (!month) return;
-        counts[month] = (counts[month] || 0) + 1;
+        const key = item.fecha?.substring(0, len);
+        if (!key) return;
+        counts[key] = (counts[key] || 0) + 1;
       });
     } else {
       filteredHistory.forEach(item => {
-        const month = item.fecha?.substring(0, 7);
-        if (!month) return;
-        counts[month] = (counts[month] || 0) + 1;
+        const key = item.fecha?.substring(0, len);
+        if (!key) return;
+        counts[key] = (counts[key] || 0) + 1;
       });
     }
     return Object.keys(counts).sort().map(date => ({ date, atenciones: counts[date] }));
-  }, [filteredProduction, filteredHistory, useProductionData]);
+  }, [filteredProduction, filteredHistory, useProductionData, viewMode]);
 
   const procsData = useMemo(() => {
     const counts = {};
