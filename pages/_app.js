@@ -21,6 +21,7 @@ export default function App({ Component, pageProps }) {
   const [loading, setLoading] = useState(true)
   const [syncStatus, setSyncStatus] = useState('idle')
   const loadedUserIdRef = useRef(null)
+  const attendHistoryLoadedRef = useRef(new Set())
 
 
   const syncUserFromSession = async (session) => {
@@ -77,9 +78,9 @@ export default function App({ Component, pageProps }) {
       try {
         const inventoryQuery = supabase
           .from('clinic_inventories')
-          .select('clinic_key, data')
+          .select('clinic_key, data->clinicName, data->boxes, data->providers, data->purchaseOrders, data->products, data->procedures, data->transferHistory')
         const timeoutGuard = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('inventory load timeout')), 6000)
+          setTimeout(() => reject(new Error('inventory load timeout')), 10000)
         )
         const { data: rows, error } = await Promise.race([inventoryQuery, timeoutGuard])
 
@@ -91,8 +92,9 @@ export default function App({ Component, pageProps }) {
             alcantara: getDefaultData('alcantara')
           }
           rows.forEach(row => {
-            if (row.data) {
-              merged[row.clinic_key] = { ...merged[row.clinic_key], ...row.data }
+            if (row) {
+              const { clinic_key: key, ...fields } = row
+              if (key) merged[key] = { ...merged[key], ...fields, attendHistory: [] }
             }
           })
           setInventories(merged)
@@ -124,6 +126,34 @@ export default function App({ Component, pageProps }) {
     })
   }
 
+  const loadAttendHistory = async (clinicKey) => {
+    if (!clinicKey || attendHistoryLoadedRef.current.has(clinicKey)) return
+    attendHistoryLoadedRef.current.add(clinicKey)
+    try {
+      const timeoutGuard = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('attendHistory load timeout')), 15000)
+      )
+      const query = supabase
+        .from('clinic_inventories')
+        .select('data->attendHistory')
+        .eq('clinic_key', clinicKey)
+        .single()
+      const { data: row, error } = await Promise.race([query, timeoutGuard])
+      if (error) {
+        attendHistoryLoadedRef.current.delete(clinicKey)
+        throw error
+      }
+      const history = row?.attendHistory || []
+      setInventories(prev => ({
+        ...prev,
+        [clinicKey]: { ...prev[clinicKey], attendHistory: history }
+      }))
+    } catch (err) {
+      attendHistoryLoadedRef.current.delete(clinicKey)
+      console.error('Error loading attendHistory:', err)
+    }
+  }
+
   useEffect(() => {
     if (loading) return
     if (router.pathname === '/login' && user) {
@@ -147,6 +177,7 @@ export default function App({ Component, pageProps }) {
   // const register = ...
 
   const logout = async () => {
+    attendHistoryLoadedRef.current.clear()
     try {
       await supabase.auth.signOut()
     } catch (error) {
@@ -223,7 +254,8 @@ export default function App({ Component, pageProps }) {
 
   const value = {
     user, logout, inventoryData, updateInventory,
-    activeClinic, switchClinic, syncData, syncStatus, resetInventory, loading, importHistoricalData
+    activeClinic, switchClinic, syncData, syncStatus, resetInventory, loading, importHistoricalData,
+    loadAttendHistory
   }
 
   return (

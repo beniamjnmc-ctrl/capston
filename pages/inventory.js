@@ -10,9 +10,15 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 export default function Inventory() {
   const router = useRouter()
-  const { inventoryData, updateInventory, activeClinic, switchClinic, syncData, syncStatus, logout, loading, user } = useApp()
+  const { inventoryData, updateInventory, activeClinic, switchClinic, syncData, syncStatus, logout, loading, user, loadAttendHistory } = useApp()
   
   const [currentPage, setCurrentPage] = useState('dashboard')
+
+  useEffect(() => {
+    if (currentPage === 'dashboard' || currentPage === 'historial' || currentPage === 'registrar') {
+      loadAttendHistory(activeClinic)
+    }
+  }, [currentPage, activeClinic])
   const [activeBox, setActiveBox] = useState('BODEGA')
   const [alerts, setAlerts] = useState([])
 
